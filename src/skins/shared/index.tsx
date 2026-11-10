@@ -2,16 +2,16 @@
 // the static code editor, Windows caption buttons, and the Microsoft-365 title
 // bar / ribbon frame. Imports only libs + logos — never the app shell — so there
 // are no cycles.
-import { Fragment, useMemo } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { WordLogo, ExcelLogo } from '../../logos'
-import { safeHttpUrl } from '../../core/content'
 import { aliasInitial } from '../../core/alias'
 import { lang } from '../../i18n'
 import { skinLabel } from '../labels'
 import { useSkinControls } from '../controls'
+import { safeHttpUrl } from '../../core/content'
 import {
   Save20Regular,
   ArrowUndo20Regular,
@@ -72,61 +72,40 @@ function slugify(text: string): string {
     .replace(/^-+|-+$/g, '')
 }
 
+function LazyImage({ src, alt }: { src?: string; alt?: string }) {
+  const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle')
+  const label = alt || (lang === 'zh' ? '图片' : 'Image')
+  if (!src) return <span role="img" aria-label={label}>[{label}]</span>
+  if (status !== 'loading') return <button type="button" className="reader-lazy-image" onClick={() => setStatus('loading')}>
+    {status === 'error' ? (lang === 'zh' ? '图片加载失败，点击重试：' : 'Image failed, retry: ') : (lang === 'zh' ? '点击加载图片：' : 'Load image: ')}{label}
+  </button>
+  return <img src={src} alt={label} referrerPolicy="no-referrer" onError={() => setStatus('error')} />
+}
+
 export function MarkdownContent({ markdown, baseUrl }: { markdown: string; baseUrl?: string }) {
-  // Give headings slug ids so in-page anchors (TOC / footnote back-refs) can be
-  // scrolled to instead of triggering a full refetch (see App onStageClick).
-  const heading = (Tag: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6') =>
-    function Heading({ children }: { children?: ReactNode }) {
-      return <Tag id={slugify(nodeText(children)) || undefined}>{children}</Tag>
+  const components = useMemo(() => {
+    const heading = (Tag: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6') =>
+      function Heading({ children }: { children?: ReactNode }) {
+        return <Tag id={slugify(nodeText(children)) || undefined}>{children}</Tag>
+      }
+    return {
+      h1: heading('h1'),
+      h2: heading('h2'),
+      h3: heading('h3'),
+      h4: heading('h4'),
+      h5: heading('h5'),
+      h6: heading('h6'),
+      a: ({ children, href }: { children?: ReactNode; href?: string }) => {
+        const absolute = safeHttpUrl(href, baseUrl)
+        return absolute ? <a href={absolute} data-reader-link>{children}</a> : <span>{children}</span>
+      },
+      img: ({ alt, src }: { alt?: string; src?: string }) => {
+        const absolute = safeHttpUrl(src, baseUrl)
+        return <LazyImage key={absolute || src} alt={alt} src={absolute || undefined} />
+      },
     }
-  return (
-    <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
-      components={{
-        h1: heading('h1'),
-        h2: heading('h2'),
-        h3: heading('h3'),
-        h4: heading('h4'),
-        h5: heading('h5'),
-        h6: heading('h6'),
-        a: ({ children, href }) => {
-          const safeHref = safeHttpUrl(href, baseUrl)
-          return safeHref ? (
-            <a href={safeHref} rel="noopener noreferrer">
-              {children}
-            </a>
-          ) : (
-            <span>{children}</span>
-          )
-        },
-        img: ({ alt, src }) => {
-          const safeSrc = safeHttpUrl(src, baseUrl)
-          // QR codes / app-download banners are pure scrape noise — and a giant
-          // QR code is the last thing a "work document" should open on.
-          if (safeSrc && /qr[-_]?code|qrcode|erweima|二维码|扫码|app[-_]?download|download[-_]?app/i.test(`${alt ?? ''} ${safeSrc}`)) {
-            return null
-          }
-          // Scraped images are often hotlink/referrer-protected; no-referrer lifts the
-          // success rate, and a failed load collapses (display:none) instead of showing
-          // a browser broken-image glyph — the loudest "this is a web reader" tell.
-          return safeSrc ? (
-            <img
-              alt={alt || ''}
-              loading="lazy"
-              decoding="async"
-              referrerPolicy="no-referrer"
-              src={safeSrc}
-              onError={(event) => {
-                event.currentTarget.style.display = 'none'
-              }}
-            />
-          ) : null
-        },
-      }}
-    >
-      {markdown}
-    </ReactMarkdown>
-  )
+  }, [baseUrl])
+  return <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>{markdown}</ReactMarkdown>
 }
 
 // The one non-native affordance we allow inside a disguise: a flat row of plain
@@ -138,7 +117,7 @@ export function SkinSwitcher({ className }: { className?: string }) {
   if (!ctl) return null
   const { activeSkin, skins, onSwitchSkin } = ctl
   return (
-    <div className={`skin-switch${className ? ` ${className}` : ''}`} aria-label="Open as another app">
+    <div className={`skin-switch${className ? ` ${className}` : ''}`} aria-label={lang === 'zh' ? '使用其他应用打开' : 'Open as another app'}>
       {skins.map((s, i) => (
         <Fragment key={s.id}>
           {i > 0 && (
@@ -213,9 +192,7 @@ export function splitMarkdownForChat(
 }
 
 export function escapeHtml(value: string) {
-  // Escapes quotes too: highlightMarkdownLine interpolates URLs into href="…"
-  // and this output is fed to dangerouslySetInnerHTML, so attribute-breaking
-  // quotes from arbitrary scraped markdown must not survive.
+  // Highlighted source is inserted as HTML; never let source text create tags.
   return value
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -224,32 +201,19 @@ export function escapeHtml(value: string) {
     .replace(/'/g, '&#39;')
 }
 
-function unescapeHtml(value: string) {
-  return value
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
-}
 
-export function highlightMarkdownLine(line: string, baseUrl?: string) {
+export function highlightMarkdownLine(line: string, _baseUrl?: string) {
   if (line.trim() === '') return ' '
   const escaped = escapeHtml(line)
   if (/^\s*#{1,6}\s/.test(line)) return `<span class="tok-heading">${escaped}</span>`
   if (/^\s*>/.test(line)) return `<span class="tok-quote">${escaped}</span>`
   if (/^\s*\|/.test(line)) return `<span class="tok-table">${escaped}</span>`
   let html = escaped
-  // Links become real anchors so you can click through in the editor too —
-  // the stage delegation turns the click into in-app disguised navigation.
-  // The (?<!!) skips image syntax ![alt](url) so image alts aren't linked.
+  // Source links stay highlighted text, including cached online documents.
   html = html.replace(
     /(?<!!)\[([^\]]+)\]\(([^)]+)\)/g,
-    (_match, text: string, url: string) => {
-      const safeHref = safeHttpUrl(unescapeHtml(url), baseUrl)
-      if (!safeHref) return `[${text}]<span class="tok-link-url">(${url})</span>`
-      return `<a href="${escapeHtml(safeHref)}" rel="noopener noreferrer" class="tok-link">[${text}]</a><span class="tok-link-url">(${url})</span>`
-    },
+    (_match, text: string, url: string) =>
+      `<span class="tok-link">[${text}]</span><span class="tok-link-url">(${url})</span>`,
   )
   html = html.replace(/\*\*([^*]+)\*\*/g, '<span class="tok-strong">**$1**</span>')
   html = html.replace(/`([^`]+)`/g, '<span class="tok-code">`$1`</span>')
@@ -319,29 +283,29 @@ export function MsTitleBar({ fileName, app, accent }: { fileName: string; app: s
     <div className="ms-titlebar" style={{ background: accent }}>
       <div className="ms-qat">
         {logo}
-        <span className="ms-autosave" title="AutoSave">
+        <span className="ms-autosave" title={lang === 'zh' ? '自动保存' : 'AutoSave'}>
           <span className="ms-autosave-track">
             <span className="ms-autosave-knob" />
           </span>
-          AutoSave
+          {lang === 'zh' ? '自动保存' : 'AutoSave'}
         </span>
-        <button type="button" aria-label="Save">
+        <button type="button" aria-label={lang === 'zh' ? '保存' : 'Save'}>
           <Save20Regular />
         </button>
-        <button type="button" aria-label="Undo">
+        <button type="button" aria-label={lang === 'zh' ? '撤销' : 'Undo'}>
           <ArrowUndo20Regular />
         </button>
-        <button type="button" aria-label="Redo">
+        <button type="button" aria-label={lang === 'zh' ? '重做' : 'Redo'}>
           <ArrowRedo20Regular />
         </button>
       </div>
       <div className="ms-doctitle">
         <span className="ms-doctitle-name">{fileName}</span>
-        <span className="ms-doctitle-sub">Saved to OneDrive</span>
+        <span className="ms-doctitle-sub">{lang === 'zh' ? '已保存到 OneDrive' : 'Saved to OneDrive'}</span>
       </div>
       <div className="ms-search">
         <Search20Regular />
-        <span>Search</span>
+        <span>{lang === 'zh' ? '搜索' : 'Search'}</span>
         <span className="ms-search-kbd">Alt+Q</span>
       </div>
       <div className="ms-titlebar-right">
@@ -356,10 +320,17 @@ export function MsTitleBar({ fileName, app, accent }: { fileName: string; app: s
 export function MsRibbonRight() {
   return (
     <>
-      <span className="ms-tabs-cmd">Comments</span>
-      <span className="ms-tabs-share">Share ▾</span>
+      <span className="ms-tabs-cmd">{lang === 'zh' ? '批注' : 'Comments'}</span>
+      <span className="ms-tabs-share">{lang === 'zh' ? '共享 ▾' : 'Share ▾'}</span>
     </>
   )
+}
+
+const MS_TABS_ZH: Record<string, string> = {
+  File: '文件', Home: '开始', Insert: '插入', Draw: '绘图', Design: '设计',
+  Layout: '布局', References: '引用', Mailings: '邮件', Review: '审阅',
+  View: '视图', Help: '帮助', 'Page Layout': '页面布局', Formulas: '公式',
+  Data: '数据', Automate: '自动化',
 }
 
 export function MsRibbonTabs({
@@ -381,7 +352,7 @@ export function MsRibbonTabs({
           className={i === active ? 'is-active' : i === 0 ? 'ms-file-tab' : undefined}
           data-appmenu={i === 0 ? 'file' : undefined}
         >
-          {tab}
+          {lang === 'zh' ? MS_TABS_ZH[tab] ?? tab : tab}
         </span>
       ))}
       {right && <div className="ms-tabs-right">{right}</div>}
@@ -409,24 +380,24 @@ export function WordFrame({
           <div className="ms-row">
             <button type="button" className="ms-btn-lg">
               <ClipboardPaste24Regular />
-              <span>Paste</span>
+              <span>{lang === 'zh' ? '粘贴' : 'Paste'}</span>
             </button>
             <div className="ms-col">
               <button type="button" className="ms-btn-row">
-                <Cut20Regular /> Cut
+                <Cut20Regular /> {lang === 'zh' ? '剪切' : 'Cut'}
               </button>
               <button type="button" className="ms-btn-row">
-                <Copy20Regular /> Copy
+                <Copy20Regular /> {lang === 'zh' ? '复制' : 'Copy'}
               </button>
             </div>
           </div>
-          <div className="ms-group-name">Clipboard</div>
+          <div className="ms-group-name">{lang === 'zh' ? '剪贴板' : 'Clipboard'}</div>
         </div>
 
         <div className="ms-group">
           <div className="ms-col">
             <div className="ms-row ms-font-row">
-              <span className="ms-fontbox">Aptos (Body)</span>
+              <span className="ms-fontbox">{lang === 'zh' ? 'Aptos (正文)' : 'Aptos (Body)'}</span>
               <span className="ms-sizebox">11</span>
             </div>
             <div className="ms-row">
@@ -450,7 +421,7 @@ export function WordFrame({
               </button>
             </div>
           </div>
-          <div className="ms-group-name">Font</div>
+          <div className="ms-group-name">{lang === 'zh' ? '字体' : 'Font'}</div>
         </div>
 
         <div className="ms-group">
@@ -478,33 +449,33 @@ export function WordFrame({
               </button>
             </div>
           </div>
-          <div className="ms-group-name">Paragraph</div>
+          <div className="ms-group-name">{lang === 'zh' ? '段落' : 'Paragraph'}</div>
         </div>
 
         <div className="ms-group ms-group-grow">
           <div className="ms-styles">
-            {['Normal', 'No Spacing', 'Heading 1', 'Heading 2', 'Title'].map((s, i) => (
+            {(lang === 'zh' ? ['正文', '无间距', '标题 1', '标题 2', '标题'] : ['Normal', 'No Spacing', 'Heading 1', 'Heading 2', 'Title']).map((s, i) => (
               <span key={s} className={i === 0 ? 'ms-style is-active' : 'ms-style'}>
                 {s}
               </span>
             ))}
           </div>
-          <div className="ms-group-name">Styles</div>
+          <div className="ms-group-name">{lang === 'zh' ? '样式' : 'Styles'}</div>
         </div>
 
         <div className="ms-group">
           <div className="ms-col">
             <button type="button" className="ms-btn-row">
-              <Search20Regular /> Find
+              <Search20Regular /> {lang === 'zh' ? '查找' : 'Find'}
             </button>
             <button type="button" className="ms-btn-row">
-              Replace
+              {lang === 'zh' ? '替换' : 'Replace'}
             </button>
             <button type="button" className="ms-btn-row">
-              Select
+              {lang === 'zh' ? '选择' : 'Select'}
             </button>
           </div>
-          <div className="ms-group-name">Editing</div>
+          <div className="ms-group-name">{lang === 'zh' ? '编辑' : 'Editing'}</div>
         </div>
       </div>
       <div className="word-ruler" aria-hidden="true" />

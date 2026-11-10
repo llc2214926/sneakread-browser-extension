@@ -1,16 +1,15 @@
 :root {
-  /* Windows machines get the real Segoe; everyone else gets bundled Inter. */
+  /* Use installed UI fonts; only the small icon subsets are embedded. */
   --sans:
     "Segoe UI Variable", "Segoe UI", Inter, ui-sans-serif, system-ui, -apple-system,
     sans-serif;
   --mono:
     "Cascadia Code", "Cascadia Mono", "SFMono-Regular", Consolas, "Liberation Mono",
     Menlo, monospace;
-  /* Per-app font stacks (real font first for Windows/Office, bundled clone next) */
-  --xl-body: Calibri, Carlito, Inter, sans-serif;
-  --word-body: "Aptos", Inter, Carlito, sans-serif;
-  --gd-ui: "Google Sans", Roboto, Arial, Arimo, sans-serif;
-  --gd-body: Arial, Arimo, sans-serif;
+  --xl-body: Calibri, Arial, sans-serif;
+  --word-body: "Aptos", "Segoe UI", Arial, sans-serif;
+  --gd-ui: "Google Sans", Roboto, Arial, sans-serif;
+  --gd-body: Arial, sans-serif;
 
   /* Fluent 2 neutrals + brand accents (Word/Excel/Outlook) */
   --fluent-stroke: #e0e0e0;

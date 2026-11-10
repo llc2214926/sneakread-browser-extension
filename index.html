@@ -1,43 +1,18 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; connect-src https: http:; img-src data: blob:; font-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline' blob:; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script>
-      // Microsoft Clarity — on every page, but performance-first: production host
-      // only (dev/preview/localhost untouched) and deferred to browser idle so it
-      // never blocks first paint, LCP, or interactivity.
-      ;(function () {
-        var host = location.hostname
-        if (host !== 'sneakread.com' && host !== 'www.sneakread.com') return
-        var load = function () {
-          ;(function (c, l, a, r, i, t, y) {
-            c[a] =
-              c[a] ||
-              function () {
-                ;(c[a].q = c[a].q || []).push(arguments)
-              }
-            t = l.createElement(r)
-            t.async = 1
-            t.src = 'https://www.clarity.ms/tag/' + i
-            y = l.getElementsByTagName(r)[0]
-            y.parentNode.insertBefore(t, y)
-          })(window, document, 'clarity', 'script', 'xiaapxpcej')
-        }
-        if ('requestIdleCallback' in window) requestIdleCallback(load, { timeout: 4000 })
-        else window.addEventListener('load', load)
-      })()
-    </script>
-    <title>Look Busy at Work: Fake VS Code & Word Screens | SneakRead</title>
-    <meta
-      name="description"
-      content="Pretend to work while reading anything. SneakRead disguises any page as VS Code, Word, Google Docs, Notion or Slack — free, in-browser, with an Esc boss key."
-    />
+    <title>SneakRead — 本地单文件阅读器</title>
+    <meta name="description" content="界面资源全部内嵌，直接联网读取允许跨域的网站；支持本地文件、十五种伪装和老板键。" />
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <main>
+      <h1>SneakRead · 本地单文件版</h1>
+      <p>请在源码目录执行 <code>pnpm build</code>，然后双击上一级目录中的 <code>sneakread.html</code>。</p>
+      <p>此文件是源码说明入口，不会加载外部脚本。开发时重新构建并打开生成的单文件，不使用联网开发服务器。</p>
+      <p>Build with <code>pnpm build</code>, then open <code>../sneakread.html</code>. This source entry does not load external scripts.</p>
+    </main>
   </body>
 </html>

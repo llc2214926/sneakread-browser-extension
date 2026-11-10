@@ -227,7 +227,7 @@ export function WeComSkin({ doc }: { doc: DocumentRecord }) {
             </button>
           ))}
         </div>
-        <button type="button" className="wc-rail-plus" aria-label="New">
+        <button type="button" className="wc-rail-plus" aria-label={zh ? '新建' : 'New'}>
           <Plus size={20} strokeWidth={1.8} />
         </button>
       </nav>
@@ -238,7 +238,7 @@ export function WeComSkin({ doc }: { doc: DocumentRecord }) {
             <Search size={14} strokeWidth={1.8} />
             <span>{t.search}</span>
           </div>
-          <button type="button" className="wc-add" aria-label="New conversation">
+          <button type="button" className="wc-add" aria-label={zh ? '新建会话' : 'New conversation'}>
             <Plus size={17} strokeWidth={1.8} />
           </button>
         </div>

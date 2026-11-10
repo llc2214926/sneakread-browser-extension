@@ -86,7 +86,7 @@ const DB_ROWS = {
     '关于定价的一些思考',
     '本周精读 · 5 篇好文',
     '从零搭建个人知识库',
-    'New page',
+    '新页面',
     '会议纪要 · 模板',
     '用户访谈提纲',
     '值得收藏的设计资源',
@@ -119,12 +119,12 @@ function NavIcon({ children }: { children: ReactNode }) {
   return <span className="nt-nav-ic">{children}</span>
 }
 
-// Notion writes property dates as "July 7, 2026 10:14 AM" — the stored
-// "07/07/2026, 10:14" format is a dead giveaway.
+// Format stored timestamps as localized Notion property dates.
 function notionDate(value: string | undefined) {
   const d = parseTimestamp(value)
-  const date = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+  const locale = lang === 'zh' ? 'zh-CN' : 'en-US'
+  const date = d.toLocaleDateString(locale, { month: 'long', day: 'numeric', year: 'numeric' })
+  const time = d.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', hour12: lang !== 'zh' })
   return `${date} ${time}`
 }
 
@@ -145,8 +145,8 @@ function PageRow({ icon, name, views, indent }: { icon: string; name: string; vi
       </button>
       {views && (
         <>
-          <div className="nt-page-view">List view</div>
-          <div className="nt-page-view">Gallery view</div>
+          <div className="nt-page-view">{lang === 'zh' ? '列表视图' : 'List view'}</div>
+          <div className="nt-page-view">{lang === 'zh' ? '画廊视图' : 'Gallery view'}</div>
         </>
       )}
     </>
@@ -160,7 +160,7 @@ export function NotionSkin({ doc }: { doc: DocumentRecord }) {
   const favorites = zh ? FAVORITES.zh : FAVORITES.en
   const dbRows = zh ? DB_ROWS.zh : DB_ROWS.en
   const alias = getAlias()
-  const workspace = alias ? `${alias}'s Notion` : 'My Notion'
+  const workspace = alias ? (zh ? `${alias} 的 Notion` : `${alias}'s Notion`) : (zh ? '我的 Notion' : 'My Notion')
   const dbName = zh ? '阅读记事' : 'Reading log'
 
   return (
@@ -179,7 +179,7 @@ export function NotionSkin({ doc }: { doc: DocumentRecord }) {
             <NavIcon>
               <House size={17} />
             </NavIcon>
-            Home
+            {zh ? '主页' : 'Home'}
           </button>
           <span className="nt-home-icons">
             <MessageSquare size={16} />
@@ -194,25 +194,25 @@ export function NotionSkin({ doc }: { doc: DocumentRecord }) {
             <div className="nt-mtg-card">
               <Calendar size={16} />
               <div>
-                <b>Connect your calendar</b>
-                <span>See all your events and start meeting notes.</span>
+                <b>{zh ? '连接日历' : 'Connect your calendar'}</b>
+                <span>{zh ? '查看所有日程并开始记录会议笔记。' : 'See all your events and start meeting notes.'}</span>
               </div>
             </div>
             <button type="button" className="nt-nav">
               <NavIcon>
                 <PenLine size={16} />
               </NavIcon>
-              New AI meeting note
+              {zh ? '新建 AI 会议笔记' : 'New AI meeting note'}
             </button>
           </div>
 
-          <div className="nt-section">Recents</div>
+          <div className="nt-section">{zh ? '最近访问' : 'Recents'}</div>
           <PageRow icon="📖" name={doc.title} />
           {recents.map((p) => (
             <PageRow key={p.name} icon={p.icon} name={p.name} views={p.views} />
           ))}
 
-          <div className="nt-section">Favorites</div>
+          <div className="nt-section">{zh ? '收藏' : 'Favorites'}</div>
           {favorites.map((p) => (
             <PageRow key={`f-${p.name}`} icon={p.icon} name={p.name} views={p.views} />
           ))}
@@ -220,10 +220,10 @@ export function NotionSkin({ doc }: { doc: DocumentRecord }) {
 
         <div className="nt-side-foot">
           <button type="button" className="nt-newchat">
-            <Sparkles size={15} /> New chat
+            <Sparkles size={15} /> {zh ? '新建对话' : 'New chat'}
             <span className="nt-kbd">⌘O</span>
           </button>
-          <button type="button" className="nt-side-compose" aria-label="New page">
+          <button type="button" className="nt-side-compose" aria-label={zh ? '新页面' : 'New page'}>
             <PenLine size={16} />
           </button>
         </div>
@@ -235,20 +235,20 @@ export function NotionSkin({ doc }: { doc: DocumentRecord }) {
           <span className="nt-crumb">{dbName}</span>
           <span className="nt-crumb-sep">·</span>
           <span className="nt-crumb nt-crumb-muted">
-            <Lock size={12} /> Private
+            <Lock size={12} /> {zh ? '私人' : 'Private'}
           </span>
           <ChevronDown size={13} className="nt-crumb-muted" aria-hidden="true" />
         </div>
         <div className="nt-db-scroll">
           <div className="nt-db-adds">
-            <span><Smiley /> Add icon</span>
-            <span><ImageIcon size={15} /> Add cover</span>
-            <span><AlignLeft size={15} /> Add description</span>
+            <span><Smiley /> {zh ? '添加图标' : 'Add icon'}</span>
+            <span><ImageIcon size={15} /> {zh ? '添加封面' : 'Add cover'}</span>
+            <span><AlignLeft size={15} /> {zh ? '添加描述' : 'Add description'}</span>
           </div>
           <h1 className="nt-db-title">{dbName}</h1>
           <div className="nt-viewbar">
             <span className="nt-view is-active">
-              <List size={15} /> List view <ChevronDown size={13} />
+              <List size={15} /> {zh ? '列表视图' : 'List view'} <ChevronDown size={13} />
             </span>
             <span className="nt-view-tools">
               <ListFilter size={16} />
@@ -259,7 +259,7 @@ export function NotionSkin({ doc }: { doc: DocumentRecord }) {
               <SlidersHorizontal size={16} />
             </span>
             <span className="nt-new-btn">
-              New <ChevronDown size={13} />
+              {zh ? '新建' : 'New'} <ChevronDown size={13} />
             </span>
           </div>
           <div className="nt-db-list">
@@ -270,7 +270,7 @@ export function NotionSkin({ doc }: { doc: DocumentRecord }) {
                   <span className="nt-row-name">{doc.title}</span>
                 </div>
               ) : (
-                <div key={i} className={row === 'New page' ? 'nt-row nt-row-faint' : 'nt-row'}>
+                <div key={i} className={row === (zh ? '新页面' : 'New page') ? 'nt-row nt-row-faint' : 'nt-row'}>
                   <FileText size={17} className="nt-row-ic" />
                   <span className="nt-row-name">{row}</span>
                 </div>
@@ -292,7 +292,7 @@ export function NotionSkin({ doc }: { doc: DocumentRecord }) {
               <Languages size={16} />
             </span>
             <span className="nt-share">
-              <Lock size={13} /> Share <ChevronDown size={12} />
+              <Lock size={13} /> {zh ? '分享' : 'Share'} <ChevronDown size={12} />
             </span>
             <LinkIcon size={16} />
             <Star size={16} />
@@ -308,37 +308,37 @@ export function NotionSkin({ doc }: { doc: DocumentRecord }) {
             <div className="nt-props">
               <div className="nt-prop">
                 <span className="nt-prop-k">
-                  <Tag size={15} /> Tags
+                  <Tag size={15} /> {zh ? '标签' : 'Tags'}
                 </span>
-                <span className="nt-prop-v nt-prop-empty">Empty</span>
+                <span className="nt-prop-v nt-prop-empty">{zh ? '空' : 'Empty'}</span>
               </div>
               <div className="nt-prop">
                 <span className="nt-prop-k">
-                  <Clock size={15} /> Created
+                  <Clock size={15} /> {zh ? '创建时间' : 'Created'}
                 </span>
                 <span className="nt-prop-v">{notionDate(doc.fetchedAt)}</span>
               </div>
               <div className="nt-prop">
                 <span className="nt-prop-k">
-                  <Clock size={15} /> Updated
+                  <Clock size={15} /> {zh ? '更新时间' : 'Updated'}
                 </span>
                 <span className="nt-prop-v">{notionDate(doc.lastSyncedAt || doc.fetchedAt)}</span>
               </div>
               <div className="nt-prop">
                 <span className="nt-prop-k">
-                  <LinkIcon size={15} /> URL
+                  <LinkIcon size={15} /> {zh ? '链接' : 'URL'}
                 </span>
                 <span className="nt-prop-v nt-prop-link">{getSiteLabel(doc.sourceUrl)}</span>
               </div>
               <div className="nt-prop nt-prop-add">
-                <Plus size={14} /> Add a property
+                <Plus size={14} /> {zh ? '添加属性' : 'Add a property'}
               </div>
             </div>
             <div className="nt-comments">
-              <span className="nt-comment-label">Comments</span>
+              <span className="nt-comment-label">{zh ? '评论' : 'Comments'}</span>
               <div className="nt-comment-add">
                 <span className="nt-comment-av" />
-                <span className="nt-comment-ph">Add a comment…</span>
+                <span className="nt-comment-ph">{zh ? '添加评论…' : 'Add a comment…'}</span>
               </div>
             </div>
             <div className="nt-peek-divider" />

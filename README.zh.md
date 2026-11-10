@@ -1,93 +1,80 @@
 # SneakRead · 摸鱼
 
-**在工位上读整个互联网，伪装成你本来就开着的那个软件。**
+**界面资源全部内嵌的单 HTML 阅读器；联网直接读取目标网站，并在本机解析正文、伪装显示。**
 
-[![GitHub Repo stars](https://img.shields.io/github/stars/SneakRead/sneakread?style=flat&logo=github)](https://github.com/SneakRead/sneakread) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) · [sneakread.com](https://sneakread.com) · 纯前端、无后端、无账号 · [English](README.md)
+[English](README.md) · [MIT 许可证](LICENSE) · 无后端、无账号、无统计
 
-粘贴任意公开网址，SneakRead 通过阅读器把它抓成正文，然后**全屏渲染成一个真实的桌面软件** —— VS Code、Claude Code、Word、WPS、Google Docs、Notion、Slack、飞书、钉钉、企业微信、Teams、Gmail、Excel 或 Outlook —— 让「看网页」看起来像「在工作」。品牌：全球叫 **SneakRead**，中文叫 **摸鱼**。
+## 使用
 
-![BBC 世界杯首页，此刻是一份 Word 文档——真功能区、真字数统计、真状态栏](docs/screenshots/zh-word.jpg)
+1. 双击构建生成的 `sneakread.html`。启动界面不需要服务器或网络连接。
+2. 在「网页地址」输入网址，直接联网读取允许跨域的网站；若要读取非 CORS 网站，按 [browser-extension/README.zh.md](browser-extension/README.zh.md) 安装 Chromium 扩展，再从扩展图标打开阅读器。扩展会在后台等待目标网站渲染后提取 DOM。也可粘贴文字、导入 **UTF-8 编码**的 `.txt`、`.md`、`.markdown`、`.html`、`.htm` 文件。
+3. 选择伪装阅读；文件菜单和命令面板用于切换外观、语言等设置。
+4. 按 `Esc` 显示预算表，再按一次回到阅读；可开启失焦自动隐藏。
+5. Excel 外观中，左右拖动表格与正文之间的分隔条调整宽度；也可用 Tab 聚焦分隔条后按左右方向键调整，Home / End 到达边界。窗口宽度不超过 820px 时自动使用正文单栏。宽度不写入本地记录，刷新或切换外观后恢复默认比例。
 
-<sup>↑ BBC 世界杯首页，此刻是一份 `.docx`。状态栏里的字数是真的一个一个数出来的。</sup>
+**资源离线不等于禁止联网阅读。** 所有应用脚本、样式、字体和图标内嵌；独立版网址读取只连接目标网站及其重定向，不使用第三方正文抓取服务。扩展版会在当前浏览器配置中打开目标页，等待脚本渲染后在本机提取 DOM，可使用已有登录状态。验证码、付费墙、反爬和需要持续交互的内容不保证可读。点击正文链接会在当前阅读器中加载目标页，保留所选外观；图片默认显示加载按钮，仅点击后在正文中显示，失败时可点击重试。VS Code 默认进入预览页，源码页保留 Markdown 原文。旧缓存若没有链接或图片地址，请重新输入原网址读取一次。
 
-设计目标是**以假乱真**（和最新版的真软件像素级一致），对标 [remoteok.com/vscode](https://remoteok.com/vscode)：
+## 十五种伪装
 
-- **一个软件占满整个视口**（`/` 就是阅读器，`/app` 只是旧链接别名）。没有多余外壳 —— 只有目标软件自己的标题栏（带真实品牌 logo）、功能区/活动栏、状态栏。
-- **所有控制都藏在伪装的真实 File 菜单**和命令面板（`⌘K` / `⌘P`）里：打开网址、切换软件、切语言、刷新、全屏、一键老板键。
-- **老板键**：按 `Esc`（或开启失焦自动隐藏后切走窗口）瞬间翻成一张像模像样的 `Q3 Budget Review.xlsx`（真·财务模型，带公式和图表）。再按 `Esc` 还原。
-- **连续浏览**：每个皮肤里的链接都可点，点一下就用**当前伪装**继续加载下一篇。
-- 浏览器标签页的标题和 favicon 也跟着伪装走，绝不暴露品牌。
-
-## 皮肤
-
-| 皮肤 | 伪装成 | 内容形态 |
-| --- | --- | --- |
-| Word | 标题栏、Colorful 功能区、标尺、画布上的纸张、状态栏 | 干净的文章 |
-| VS Code | 完整工作台：活动栏、资源管理器、**真 Monaco 编辑器**、终端、minimap | 源码 markdown |
-| Claude Code | 跑着 AI 编码助手的 macOS 终端：工具调用、流式回答、context 余量 | 文章当成 AI 的回答 |
-| Google Docs | 文档顶栏、菜单、药丸工具栏、页面 | 干净的文章 |
-| Notion | 侧栏、List view 数据库、右侧 peek 面板与属性区 | 文章当成一个页面 |
-| 飞书文档 | 面包屑、目录栏、AI 速览、分享按钮、可选署名水印 | 干净的云文档 |
-| Slack | 深紫侧栏、频道列表、消息流、输入框 | 文章拆成一串消息 |
-| 飞书 | 导航侧栏、会话列表、群聊（带已读回执） | 文章拆成群消息 |
-| 钉钉 | 图标导航、会话列表、群聊（已读 n/23 + DING） | 文章拆成群消息 |
-| 企业微信 | 深色应用栏、会话列表、群聊、工作台式工具入口 | 文章拆成群消息 |
-| WPS 文字 | 多标签页、全中文功能区、A4 纸、会员皇冠 | 干净的文章（中文界面） |
-| Excel | 功能区、公式栏、真实网格、工作表标签 | 有表格就渲染表格，否则渲染审计表 |
-| Outlook | 应用轨、文件夹、邮件列表、阅读窗格 | 文章当成一封邮件 |
-| Teams | 紫色应用轨、频道 Posts、回复链 | 文章当成频道帖子 |
-| Gmail | Material 顶栏、标签侧栏、打开的会话、智能回复 | 文章当成一封 newsletter |
-
-在 **文件 ▸ 伪装署名** 里填上你的名字，所有伪装都会「穿上」它——头像、Notion
-工作区名，以及飞书文档的企业风平铺水印。
-
-### 同一篇文章，十五副面孔
-
-| | |
+| 皮肤 | 内容形态 |
 | --- | --- |
-| ![Claude Code 皮肤](docs/screenshots/zh-claude-code.jpg) **Claude Code** —— 文章变成 AI 助手的回答，带工具调用 | ![飞书文档皮肤](docs/screenshots/zh-lark-docs.jpg) **飞书文档** —— 注意满屏平铺的署名水印 |
-| ![钉钉皮肤](docs/screenshots/zh-dingtalk.jpg) **钉钉** —— 连「已读 18/23」都演出来了 | ![WPS 皮肤](docs/screenshots/zh-wps.jpg) **WPS 文字** —— 全中文界面，会员皇冠都在 |
-| ![老板键](docs/screenshots/zh-boss-key.jpg) **老板键** —— 按 Esc 秒变《Q3 预算复盘.xlsx》 | ![手机版](docs/screenshots/zh-mobile.jpg) **手机也能摸** —— 重型界面自动收起 |
-| ![企业微信皮肤](docs/screenshots/zh-wecom.jpg) **企业微信** —— 首个社区贡献皮肤，感谢 [@Fmaverick](https://github.com/Fmaverick) | ![首页](docs/screenshots/zh-home.jpg) **首页** —— 本身就是一份 Word 文档，演出从第一秒开始 |
+| Word | 带功能区、标尺与状态栏的文章 |
+| VS Code | 轻量代码视图中的 Markdown；不加载 Monaco |
+| Claude Code | 终端里的助手回复 |
+| Google Docs | 文档页面 |
+| Notion | 数据库中的页面 |
+| 飞书文档 | 带目录和署名水印的文档 |
+| Slack | 频道消息 |
+| 飞书 | 群聊消息 |
+| 钉钉 | 群聊消息 |
+| 企业微信 | 群聊消息 |
+| WPS 文字 | 中文办公文档 |
+| Excel | 数据表格或审计表 |
+| Outlook | 邮件阅读窗格 |
+| Teams | 频道帖子 |
+| Gmail | 邮件会话 |
 
-## 隐私（说实话版）
+保留老板键、伪装署名、本地阅读记录和多语言设置。皮肤支持 en、zh、es、hi、ar、pt、ru、ja、fr、de；离线导入入口提供中英文文案。文章原文、品牌、代码和文件路径不会因切换语言而翻译。
 
-无后端、无账号、无自家 Cookie。你读的内容由你的浏览器直接抓取、只存在你的
-浏览器里（localStorage）。官网加载了 Microsoft Clarity 和 Google Analytics
-做匿名使用分析——只看产品功能的使用情况（皮肤、老板键、示例），绝不涉及你读
-的文章：不传完整网址（只有域名和分桶计数）、不传标题、不传你输入的任何内容。
-两者都在首屏渲染完成后才懒加载、只在 sneakread.com 上启用；屏蔽它们不影响任
-何功能。自部署版本不发送任何数据。
+## 隐私与本地记录
 
-## 技术栈
+- 所有应用脚本、样式、必要图标与许可均内嵌在独立单 HTML 中，以 gzip 压缩；扩展版本将应用资源作为扩展本地文件打包，不从 CDN 加载。
+- 不包含第三方阅读服务或外部统计。打开网址、点击正文链接时读取目标页；点击图片按钮后才在阅读器中请求图片原地址。扩展后台渲染目标网站时，网站自身仍会加载其脚本、图片等资源；按需图片开关仅控制阅读器正文中的展示与请求。
+- 独立 HTML 的 CSP 允许 HTTP(S) 内容与图片请求，但禁止外部脚本、远程字体、框架和表单提交；扩展版本由扩展权限读取 HTTP(S)。获取或导入的 HTML 在阅读器中不会作为脚本执行；链接和图片仅保留 HTTP(S) 地址。
+- 文章和设置保存在当前浏览器的本地存储中，不会自动写回 `sneakread.html` 或导入文件。
+- **缓存不是备份。** 清理浏览器数据、隐私模式、更换浏览器或移动 HTML 文件路径，都可能使记录不可用。请保留原始文件；复制阅读器 HTML 不会连同记录一起复制。
+- 老板键只切换画面，不加密本地数据，也不能阻止他人查看浏览器存储。
 
-- **Vite + React + TypeScript**，无后端，全部跑在浏览器里。
-- **前端阅读器兜底**：Jina（`r.jinaai.cn` → `r.jina.ai`）→ Firecrawl（免 key）。按网络自适应排序、记住上次可用的源、各自超时 + 失败冷却。**前端绝不放 API key。**
-- **真·厂商素材**做像素级保真：[Monaco](https://microsoft.github.io/monaco-editor/)（VS Code 的真编辑器内核，懒加载）、[Codicons](https://github.com/microsoft/vscode-codicons)、[Fluent 图标](https://github.com/microsoft/fluentui-system-icons)、[Material Symbols](https://fonts.google.com/icons)，以及自托管的度量兼容字体（Inter/Carlito/Roboto/Cascadia Code）。
-- 10 种语言的零依赖 i18n；落地页用小脚本预渲染（SSG）。
+## 构建与开发
 
-## 开发
+需要支持 Vite 8 的 Node.js（20.19+ 或 22.12+）及 pnpm。安装依赖和读取新网址需要网络；启动界面、阅读缓存及本地文件不需要网络。
 
 ```bash
 pnpm install
-pnpm dev        # http://localhost:5173  → / 就是阅读器
-pnpm build      # 打成 dist/ 静态站点
+pnpm build      # 类型检查，生成 ../sneakread.html 和 browser-extension/ 内的扩展页面
 ```
 
-## 贡献一个皮肤
+仅打包时可执行 `node build-single.mjs`。独立发布产物是上一级目录中的 `sneakread.html`；扩展目录同时生成 `sneakread.html`、`app.js` 和 `app.css`。源码 `index.html` 使用严格 CSP；开发时重新构建并打开对应产物，不使用 Vite HMR 或预览服务器。
 
-SneakRead 就是为「被扩展」而设计的 —— **新皮肤是最受欢迎的贡献**。每个皮肤都是 [`src/skins/`](src/skins/) 下一个自包含模块：一份定义（id、名称、logo、主色）加一个把 `DocumentRecord` 渲染成那个软件的 React 组件。复制模板、把它做得像真的、提 PR 即可。接口和清单见 **[CONTRIBUTING.md](CONTRIBUTING.md)**。
+运行需要支持 `DecompressionStream` 的现代 Chrome、Edge、Firefox 或 Safari，并启用 JavaScript。gzip 启动器使用浏览器原生解压和内联脚本，不使用 `eval`。第三方许可解压后保存在页面的 `#third-party-licenses` 中。
 
-## 作者
+## 验证
 
-由 **刘小排（Liu Xiaopai）** 开发 —— 一个做小而有用产品的独立开发者。
+- 本地阅读模式已在 Chromium 的 `file://` 页面验证：粘贴正文、三类文件导入、15 种外观、老板键、离线重载、本地记录、中英文切换及 508px 窄屏。不打开网址时无 HTTP(S) 请求。
+- 直连阅读已实测 `https://www.w3.org/TR/DOM-Parsing/`：返回 200，在 Word 外观显示正文；目标响应允许 `Access-Control-Allow-Origin: *`。`https://example.com/` 未提供跨域许可，浏览器拒绝读取后显示错误并保留原文。还验证了手动取消、非法协议拒绝、断网缓存重载与老板键。网络记录只出现手动输入的目标域名，没有第三方抓取请求。
+- 已在隔离 Chrome 配置中实际加载扩展并打开 `chrome-extension://` 阅读页，使用本地动态网页验证渲染后相对链接、连续章节导航、失败时保留原文、默认零图片元素、点击后图片真实解码显示，以及图片失败重试按钮。点击嵌在链接内的图片加载按钮不会跳离阅读器；图片请求不发送 Referer。
+- 本地内容与安全检查覆盖安全相对地址、脚本协议拒绝、恶意 HTML 不执行、不自动请求资源，TXT/HTML 正文保留，及 15 种外观的链接与默认不加载图片。验证脚本仅保留在本地，不进入发布提交或交付产物。
+- Excel 分栏已在真实扩展页实测向左/向右拖动、20%～80% 的边界限制、键盘调整，以及 508px 窄屏隐藏分隔条并完整显示正文。本地检查同时覆盖键盘调整和边界行为。
+- 导入长文不会静默裁掉尾段；存储不足会提示保存失败，不会为腾空间自动删旧记录。保留原文件作为备份。
+- 尚未在 Safari、Firefox 上实际验证。
 
-- 微信公众号：**刘小排r**
-- X / Twitter：[@bourneliu66](https://twitter.com/bourneliu66)
-- 我的另一个产品：**[Raphael AI](https://raphael.app)** —— 免费 AI 生图。
 
-如果 SneakRead 帮你熬过了一场无聊的会，给个 ⭐ 我会很开心 —— 真·开源的这类产品，真的不多。
+## 贡献与许可
 
-## 协议
+技术栈：Vite、React、TypeScript、React Markdown + GFM。皮肤接口保持不变，见 [CONTRIBUTING.md](CONTRIBUTING.md)。界面资源必须保持全部内嵌；联网逻辑集中在 `src/core/web-read.ts`，禁止增加第三方抓取中转或执行文章脚本。
+
+界面不显示原作者署名或个人推广；原始版权声明和 MIT 许可保留在许可文件与打包许可文本中。
+
+原作：[SneakRead/sneakread](https://github.com/SneakRead/sneakread)，作者 **刘小排（Liu Xiaopai）**。
 
 [MIT](LICENSE) © 2026 SneakRead · 刘小排（Liu Xiaopai）

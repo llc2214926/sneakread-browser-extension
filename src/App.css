@@ -72,6 +72,16 @@
   margin: 18px auto;
   border-radius: 4px;
 }
+.markdown-body .reader-lazy-image {
+  display: block;
+  max-width: 100%;
+  margin: 12px 0;
+  padding: 6px 10px;
+  border: 1px dashed currentColor;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
 
 .markdown-body hr {
   border: 0;
@@ -2001,6 +2011,12 @@ kbd {
   cursor: default;
 }
 
+html:lang(zh) .ms-ribbon-tabs > span {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+
 .ms-ribbon-tabs > span:not(.is-active):not(.ms-file-tab):hover {
   background: rgba(255, 255, 255, 0.14);
 }
@@ -2382,6 +2398,26 @@ kbd {
   display: grid;
   grid-template-columns: minmax(460px, 1.15fr) minmax(300px, 0.85fr);
   overflow: hidden;
+}
+
+.excel-body-resizable {
+  grid-template-columns: minmax(0, var(--excel-grid-width)) 6px minmax(0, var(--excel-read-width));
+}
+
+.excel-resizer {
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+  background: #f3f2f1;
+  border-inline: 1px solid #d2d0ce;
+}
+
+.excel-resizer:hover,
+.excel-resizer:focus-visible,
+.excel-resizer:active {
+  background: #c8ddd0;
+  outline: 2px solid #107c41;
+  outline-offset: -2px;
 }
 
 .excel-grid-host {
@@ -3481,7 +3517,8 @@ kbd {
   .excel-body {
     grid-template-columns: minmax(0, 1fr);
   }
-  .excel-grid-host {
+  .excel-grid-host,
+  .excel-resizer {
     display: none;
   }
   .paper {
@@ -5907,3 +5944,36 @@ kbd {
 [data-appmenu] {
   cursor: pointer;
 }
+
+/* Local import controls inherit the surrounding disguise; no remote assets. */
+.offline-import { display: grid; gap: 14px; margin: 24px 0; text-align: start; color: #333; }
+.vsc-editor .offline-import { color: #ccc; }
+.offline-import > label { display: grid; gap: 6px; font-size: 14px; }
+.offline-import input:not([type="file"]), .offline-import textarea {
+  width: 100%; min-width: 0; border: 1px solid #c8ccd1; border-radius: 5px;
+  padding: 10px 12px; font: 14px/1.6 var(--sans); color: #242424; background: #fff;
+}
+.offline-import textarea { resize: vertical; min-height: 150px; }
+.offline-import-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: start; }
+.offline-import-actions > button { border: 0; border-radius: 5px; padding: 11px 22px; color: #fff; background: #2b579a; cursor: pointer; }
+.offline-import-actions > button:disabled { opacity: .6; cursor: wait; }
+.offline-file { display: grid; gap: 6px; font-size: 13px; }
+.offline-file input { max-width: 100%; width: 270px; font: inherit; }
+.offline-note { font-size: 12px; line-height: 1.7; opacity: .75; }
+.offline-dialog {
+  position: fixed; inset: 0; margin: auto; width: min(680px, calc(100vw - 28px)); max-height: 86vh;
+  overflow: auto; padding: 22px; border: 1px solid #c8ccd1; border-radius: 9px;
+  background: #fff; color: #242424; box-shadow: 0 14px 50px #0004; font: 14px/1.6 var(--sans);
+}
+.offline-dialog::backdrop { background: #0005; }
+.offline-dialog > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.offline-dialog > header > button, .offline-notice > button { border: 0; background: transparent; color: inherit; padding: 2px 8px; font-size: 22px; cursor: pointer; }
+.offline-search { display: flex; align-items: center; gap: 8px; border: 1px solid #bbb; padding: 8px 12px; }
+.offline-search input { flex: 1; min-width: 0; border: 0; padding: 4px; background: transparent; color: inherit; }
+.offline-command-list { overflow: auto; max-height: 58vh; margin-top: 12px; }
+.offline-command { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 12px; border: 0; padding: 9px 12px; background: transparent; color: inherit; text-align: start; cursor: pointer; }
+.offline-command.is-active, .offline-command:hover { background: #edf3fc; }
+.offline-command small { color: #666; }
+.offline-notice { position: fixed; z-index: 500; inset: auto 16px 32px; padding: 10px 16px; background: #fff4ce; color: #493a00; border: 1px solid #ccb24d; font: 13px/1.6 var(--sans); }
+.offline-notice > button { float: right; }
+.offline-welcome button:focus-visible, .offline-dialog button:focus-visible { outline: 2px solid #0078d4; outline-offset: 2px; }

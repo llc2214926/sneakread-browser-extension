@@ -131,7 +131,7 @@ export function LarkSkin({ doc }: { doc: DocumentRecord }) {
     { label: zh ? '消息' : 'Messages', Icon: MessageSquare, active: true },
     { label: zh ? '云文档' : 'Docs', Icon: FileText },
     { label: zh ? '文件' : 'Files', Icon: Folder },
-    { label: 'Pin', Icon: Pin },
+    { label: zh ? '置顶' : 'Pin', Icon: Pin },
   ]
 
   return (
@@ -140,7 +140,7 @@ export function LarkSkin({ doc }: { doc: DocumentRecord }) {
       <nav className="lk-nav">
         <div className="lk-nav-top">
           <span className="lk-nav-me">{aliasInitial()}</span>
-          <button type="button" className="lk-nav-add" aria-label="New">
+          <button type="button" className="lk-nav-add" aria-label={zh ? '新建' : 'New'}>
             <Plus size={18} />
           </button>
         </div>
@@ -338,7 +338,7 @@ export function LarkSkin({ doc }: { doc: DocumentRecord }) {
               <Plus size={18} />
               <Maximize2 size={16} />
             </span>
-            <button type="button" className="lk-send-btn" aria-label="Send">
+            <button type="button" className="lk-send-btn" aria-label={zh ? '发送' : 'Send'}>
               <SendHorizontal size={16} />
               <ChevronDown size={13} />
             </button>

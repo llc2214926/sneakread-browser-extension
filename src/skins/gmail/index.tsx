@@ -4,6 +4,9 @@ import type { DocumentRecord } from '../../core/types'
 import type { SkinDefinition } from '../types'
 import { articleBody, getSiteLabel } from '../../core/content'
 import { MSym, MarkdownContent, SkinSwitcher } from '../shared'
+import { lang } from '../../i18n'
+
+const zh = lang === 'zh'
 
 // Official Gmail envelope "M" (2020 rebrand), drawn in a square viewBox so it
 // sits centered in the home gallery / menus like the other brand marks.
@@ -55,53 +58,53 @@ function receivedStamp() {
   const now = new Date()
   const received = new Date(now.getTime() - (2 * 60 + 13) * 60_000)
   const hours = Math.max(1, Math.floor((now.getTime() - received.getTime()) / 3_600_000))
-  const time = received.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  const time = received.toLocaleTimeString(zh ? 'zh-CN' : 'en-US', { hour: 'numeric', minute: '2-digit' })
   const sameDay = received.toDateString() === now.toDateString()
-  const day = received.toLocaleDateString('en-US', {
+  const day = received.toLocaleDateString(zh ? 'zh-CN' : 'en-US', {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
   })
-  const stamp = sameDay ? time : `${day}, ${time}`
-  return `${stamp} (${hours} ${hours === 1 ? 'hour' : 'hours'} ago)`
+  const stamp = sameDay ? time : `${day}${zh ? ' ' : ', '}${time}`
+  return zh ? `${stamp}（${hours} 小时前）` : `${stamp} (${hours} ${hours === 1 ? 'hour' : 'hours'} ago)`
 }
 
 const gmNav: { icon: string; label: string; count?: string; active?: boolean }[] = [
-  { icon: 'inbox', label: 'Inbox', count: '12', active: true },
-  { icon: 'star', label: 'Starred' },
-  { icon: 'schedule', label: 'Snoozed' },
-  { icon: 'send', label: 'Sent' },
-  { icon: 'draft', label: 'Drafts', count: '2' },
-  { icon: 'expand_more', label: 'More' },
+  { icon: 'inbox', label: zh ? '收件箱' : 'Inbox', count: '12', active: true },
+  { icon: 'star', label: zh ? '已加星标' : 'Starred' },
+  { icon: 'schedule', label: zh ? '已延后' : 'Snoozed' },
+  { icon: 'send', label: zh ? '已发送' : 'Sent' },
+  { icon: 'draft', label: zh ? '草稿' : 'Drafts', count: '2' },
+  { icon: 'expand_more', label: zh ? '更多' : 'More' },
 ]
 
 // Fictional labels — bilingual-safe, no real names/projects.
 const gmLabels = [
-  { label: 'Work', color: '#4285f4' },
-  { label: 'Newsletters', color: '#34a853' },
-  { label: 'Receipts', color: '#f9ab00' },
+  { label: zh ? '工作' : 'Work', color: '#4285f4' },
+  { label: zh ? '订阅邮件' : 'Newsletters', color: '#34a853' },
+  { label: zh ? '收据' : 'Receipts', color: '#f9ab00' },
 ]
 
 const gmTools: { icon: string; label: string }[] = [
-  { icon: 'archive', label: 'Archive' },
-  { icon: 'report', label: 'Report spam' },
-  { icon: 'delete', label: 'Delete' },
+  { icon: 'archive', label: zh ? '归档' : 'Archive' },
+  { icon: 'report', label: zh ? '举报垃圾邮件' : 'Report spam' },
+  { icon: 'delete', label: zh ? '删除' : 'Delete' },
 ]
 const gmTools2: { icon: string; label: string }[] = [
-  { icon: 'mark_email_unread', label: 'Mark as unread' },
-  { icon: 'schedule', label: 'Snooze' },
-  { icon: 'drive_file_move', label: 'Move to' },
-  { icon: 'label', label: 'Labels' },
+  { icon: 'mark_email_unread', label: zh ? '标为未读' : 'Mark as unread' },
+  { icon: 'schedule', label: zh ? '延后' : 'Snooze' },
+  { icon: 'drive_file_move', label: zh ? '移至' : 'Move to' },
+  { icon: 'label', label: zh ? '标签' : 'Labels' },
 ]
 
 const gmSidePanel = [
-  { icon: 'calendar_month', label: 'Calendar', color: '#4285f4' },
+  { icon: 'calendar_month', label: zh ? '日历' : 'Calendar', color: '#4285f4' },
   { icon: 'lightbulb', label: 'Keep', color: '#f9ab00' },
-  { icon: 'task_alt', label: 'Tasks', color: '#1a73e8' },
-  { icon: 'contacts', label: 'Contacts', color: '#4285f4' },
+  { icon: 'task_alt', label: zh ? '任务' : 'Tasks', color: '#1a73e8' },
+  { icon: 'contacts', label: zh ? '通讯录' : 'Contacts', color: '#4285f4' },
 ]
 
-const gmSmartReplies = ['Thanks for sharing!', 'Interesting read', 'Got it']
+const gmSmartReplies = zh ? ['感谢分享！', '很有意思的文章', '收到'] : ['Thanks for sharing!', 'Interesting read', 'Got it']
 
 export function GmailSkin({ doc }: { doc: DocumentRecord }) {
   const body = articleBody(doc)
@@ -121,7 +124,7 @@ export function GmailSkin({ doc }: { doc: DocumentRecord }) {
             type="button"
             className="gm-iconbtn gm-burger"
             data-appmenu="file"
-            aria-label="Main menu"
+            aria-label={zh ? '主菜单' : 'Main menu'}
           >
             <MSym name="menu" className="gm-ic24" />
           </button>
@@ -131,29 +134,29 @@ export function GmailSkin({ doc }: { doc: DocumentRecord }) {
           </span>
         </div>
         <div className="gm-search">
-          <button type="button" className="gm-iconbtn gm-search-btn" aria-label="Search">
+          <button type="button" className="gm-iconbtn gm-search-btn" aria-label={zh ? '搜索' : 'Search'}>
             <MSym name="search" className="gm-ic24" />
           </button>
-          <span className="gm-search-hint">Search mail</span>
+          <span className="gm-search-hint">{zh ? '搜索邮件' : 'Search mail'}</span>
           <button
             type="button"
             className="gm-iconbtn gm-search-btn"
-            aria-label="Show search options"
+            aria-label={zh ? '显示搜索选项' : 'Show search options'}
           >
             <MSym name="tune" className="gm-ic24" />
           </button>
         </div>
         <div className="gm-top-right">
-          <button type="button" className="gm-iconbtn" aria-label="Support">
+          <button type="button" className="gm-iconbtn" aria-label={zh ? '帮助' : 'Support'}>
             <MSym name="help" className="gm-ic24" />
           </button>
-          <button type="button" className="gm-iconbtn" aria-label="Settings">
+          <button type="button" className="gm-iconbtn" aria-label={zh ? '设置' : 'Settings'}>
             <MSym name="settings" className="gm-ic24" />
           </button>
-          <button type="button" className="gm-iconbtn" aria-label="Google apps">
+          <button type="button" className="gm-iconbtn" aria-label={zh ? 'Google 应用' : 'Google apps'}>
             <MSym name="apps" className="gm-ic24" />
           </button>
-          <button type="button" className="gm-me" aria-label="Google Account">
+          <button type="button" className="gm-me" aria-label={zh ? 'Google 账号' : 'Google Account'}>
             M
           </button>
         </div>
@@ -162,7 +165,7 @@ export function GmailSkin({ doc }: { doc: DocumentRecord }) {
       <nav className="gm-nav">
         <button type="button" className="gm-compose">
           <ComposeGlyph />
-          Compose
+          {zh ? '写邮件' : 'Compose'}
         </button>
         <div className="gm-nav-list">
           {gmNav.map((item) => (
@@ -178,8 +181,8 @@ export function GmailSkin({ doc }: { doc: DocumentRecord }) {
           ))}
         </div>
         <div className="gm-labels-head">
-          <span>Labels</span>
-          <button type="button" className="gm-iconbtn gm-labels-add" aria-label="Create new label">
+          <span>{zh ? '标签' : 'Labels'}</span>
+          <button type="button" className="gm-iconbtn gm-labels-add" aria-label={zh ? '新建标签' : 'Create new label'}>
             <MSym name="add" />
           </button>
         </div>
@@ -196,7 +199,7 @@ export function GmailSkin({ doc }: { doc: DocumentRecord }) {
       <main className="gm-main">
         <div className="gm-card">
           <div className="gm-toolbar">
-            <button type="button" className="gm-iconbtn gm-tool" aria-label="Back to Inbox">
+            <button type="button" className="gm-iconbtn gm-tool" aria-label={zh ? '返回收件箱' : 'Back to Inbox'}>
               <MSym name="arrow_back" />
             </button>
             <span className="gm-tool-sep" />
@@ -226,22 +229,22 @@ export function GmailSkin({ doc }: { doc: DocumentRecord }) {
             <button
               type="button"
               className="gm-iconbtn gm-tool is-clickable"
-              aria-label="More"
-              title="More"
+              aria-label={zh ? '更多' : 'More'}
+              title={zh ? '更多' : 'More'}
             >
               <MSym name="more_vert" />
             </button>
             <div className="gm-toolbar-right">
-              <span className="gm-pager">1 of 1,024</span>
+              <span className="gm-pager">{zh ? '第 1 封，共 1,024 封' : '1 of 1,024'}</span>
               <button
                 type="button"
                 className="gm-iconbtn gm-tool"
-                aria-label="Newer"
+                aria-label={zh ? '较新邮件' : 'Newer'}
                 disabled
               >
                 <MSym name="chevron_left" />
               </button>
-              <button type="button" className="gm-iconbtn gm-tool" aria-label="Older">
+              <button type="button" className="gm-iconbtn gm-tool" aria-label={zh ? '较早邮件' : 'Older'}>
                 <MSym name="chevron_right" />
               </button>
             </div>
@@ -252,17 +255,17 @@ export function GmailSkin({ doc }: { doc: DocumentRecord }) {
             <div className="gm-subjectrow">
               <h1 className="gm-subject">{doc.title}</h1>
               <span className="gm-chip">
-                Inbox
+                {zh ? '收件箱' : 'Inbox'}
                 <MSym name="close" />
               </span>
               <span className="gm-subject-actions">
-                <button type="button" className="gm-iconbtn gm-tool" aria-label="Print all">
+                <button type="button" className="gm-iconbtn gm-tool" aria-label={zh ? '全部打印' : 'Print all'}>
                   <MSym name="print" />
                 </button>
                 <button
                   type="button"
                   className="gm-iconbtn gm-tool"
-                  aria-label="In new window"
+                  aria-label={zh ? '在新窗口中打开' : 'In new window'}
                 >
                   <MSym name="open_in_new" />
                 </button>
@@ -279,19 +282,19 @@ export function GmailSkin({ doc }: { doc: DocumentRecord }) {
                   <span className="gm-sender-addr">&lt;newsletter@{site}&gt;</span>
                 </div>
                 <button type="button" className="gm-tome">
-                  to me
+                  {zh ? '发送至我' : 'to me'}
                   <MSym name="arrow_drop_down" />
                 </button>
               </div>
               <div className="gm-sender-meta">
                 <span className="gm-time">{mailTime}</span>
-                <button type="button" className="gm-iconbtn gm-tool" aria-label="Not starred">
+                <button type="button" className="gm-iconbtn gm-tool" aria-label={zh ? '未加星标' : 'Not starred'}>
                   <MSym name="star" />
                 </button>
-                <button type="button" className="gm-iconbtn gm-tool" aria-label="Reply">
+                <button type="button" className="gm-iconbtn gm-tool" aria-label={zh ? '回复' : 'Reply'}>
                   <MSym name="reply" />
                 </button>
-                <button type="button" className="gm-iconbtn gm-tool" aria-label="More">
+                <button type="button" className="gm-iconbtn gm-tool" aria-label={zh ? '更多' : 'More'}>
                   <MSym name="more_vert" />
                 </button>
               </div>
@@ -304,11 +307,11 @@ export function GmailSkin({ doc }: { doc: DocumentRecord }) {
             <div className="gm-replies">
               <button type="button" className="gm-replybtn">
                 <MSym name="reply" />
-                Reply
+                {zh ? '回复' : 'Reply'}
               </button>
               <button type="button" className="gm-replybtn">
                 <MSym name="forward" />
-                Forward
+                {zh ? '转发' : 'Forward'}
               </button>
             </div>
             <div className="gm-smart">
@@ -336,7 +339,7 @@ export function GmailSkin({ doc }: { doc: DocumentRecord }) {
           </button>
         ))}
         <span className="gm-panel-sep" />
-        <button type="button" className="gm-iconbtn gm-panel-btn" aria-label="Get add-ons">
+        <button type="button" className="gm-iconbtn gm-panel-btn" aria-label={zh ? '获取插件' : 'Get add-ons'}>
           <MSym name="add" className="gm-panel-plus" />
         </button>
       </aside>

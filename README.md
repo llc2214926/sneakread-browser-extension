@@ -1,137 +1,72 @@
 # SneakRead · 摸鱼
 
-**Read the web at your desk, disguised as the tool you already have open.**
+**A self-contained single-HTML reader: embedded app resources, direct website requests, and local text extraction in office disguises.**
 
-[![GitHub Repo stars](https://img.shields.io/github/stars/SneakRead/sneakread?style=flat&logo=github)](https://github.com/SneakRead/sneakread) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) · [sneakread.com](https://sneakread.com) · 100% client-side, no backend, no account · [中文](README.zh.md)
+[中文](README.zh.md) · [MIT license](LICENSE) · No backend, account, or analytics
 
-Paste any public URL. SneakRead reads it through `r.jina.ai`, then renders it **full-screen as a real desktop app** — VS Code, Claude Code, Word, WPS, Google Docs, Notion, Slack, Lark/Feishu, DingTalk, WeCom, Teams, Gmail, Excel, or Outlook — so reading looks like working. Brand: **SneakRead** globally, **摸鱼** in Chinese.
+## Use
 
-![The BBC World Cup homepage, rendered as a Word document — live word count, real ribbon, real status bar](docs/screenshots/en-word.jpg)
+1. Double-click the generated `sneakread.html`. The interface starts without a server or network connection.
+2. Enter a URL to read CORS-enabled pages directly. To read non-CORS pages, install the Chromium extension from [browser-extension/README.zh.md](browser-extension/README.zh.md) and open the reader from its toolbar icon. The extension opens the target in a background tab, waits for scripts to render, then extracts the DOM. You can also paste text or import a UTF-8 `.txt`, `.md`, `.markdown`, `.html`, or `.htm` file.
+3. Read in your chosen disguise; use the File menu and command palette for appearance, language, and other settings.
+4. Press `Esc` to show the budget spreadsheet and press it again to resume. Optional boss auto-hide switches away when the window loses focus.
+5. In the Excel disguise, drag the divider between the spreadsheet and article horizontally. Tab to the divider and use Left/Right arrows, or Home/End for its limits. At widths of 820px or less, only the article is shown. Pane sizes are not persisted and reset on reload or disguise changes.
 
-<sup>↑ The BBC World Cup homepage, as a `.docx`. The word count in the status bar is real.</sup>
+**Offline assets do not mean offline-only reading.** All application resources are embedded. The standalone reader connects directly to the target website without third-party scraping services. The extension renders the target in the current browser profile and extracts the DOM locally, using existing login state. CAPTCHA, paywalls, anti-bot checks and sustained interaction may still block reading. Article links open in the current reader with the selected disguise. Images show a load button by default and are requested only when clicked; failed images offer a retry button. VS Code starts in preview; source view remains literal Markdown. Re-read the original URL to restore links and image addresses missing from older cached documents.
 
-The design goal is 以假乱真 (indistinguishable from the real thing), modelled on
-[remoteok.com/vscode](https://remoteok.com/vscode) / `/docx` / `/docs`:
+## Fifteen disguises
 
-- **One app fills the whole viewport** at `/` — the landing *is* the reader, defaulting to the Word disguise. No wrapper — only the target app's own title bar (with the real brand logo), ribbon/activity bar, and status bar. (`/app` is a legacy alias that redirects to `/`.)
-- **Every control is hidden** behind the disguise's real **File menu** and a command palette (`⌘K` / `⌘P`): open URLs, switch apps, language, refresh, fullscreen, panic.
-- **Boss key.** Press `Esc` (or lose window focus with Boss auto-hide on) to instantly flip to a plausible `Q3 Budget Review.xlsx`. `Esc` again restores.
-- **Continuous browsing.** Every skin has clickable links; clicking one loads it through the reader in the *current* disguise.
-- The browser tab title and favicon match the disguise, never the brand.
-
-## Landing & SEO
-
-The marketing pages are static, prerendered, and localized into 10 languages,
-yet **themselves disguised** — the landing IS the reader's Word home (a
-Getting-Started document with a live URL box and the 15-skin dock; every other
-disguise is one click away as a full-screen live preview):
-
-- `/`, `/zh`, `/es`, `/hi`, `/ar`, `/pt`, `/ru`, `/ja`, `/fr`, `/de` — each static HTML with localized `<title>`/description, canonical, `hreflang` (+ `x-default`), Open Graph, and `FAQPage` JSON-LD. `sitemap.xml` + `robots.txt` included.
-- Features and FAQ are real, crawlable text rendered inside the disguise.
-- The `/app` alias is `noindex`; opened documents live in the `#u=…` hash, never a crawlable path.
-
-## Getting around
-
-- **The File menu is real.** Every skin's `File` opens a working menu: Open URL, Home, Open as (each app), **Language**, Refresh, Fullscreen, Boss auto-hide, Panic, and "What is Moyu?".
-- **Command menu** (`⌘K` / `⌘P`): the same actions for keyboard users; paste a URL to open it.
-- **In-app browsing.** Click any link inside a document and it loads through the reader in the *current* skin, so you browse article to article without ever leaving the disguise. `⌘/Ctrl`-click opens the real page in a new tab.
-- **First-run onboarding** explains the three controls, once, then never again.
-- **Localized** into the browser's language across the top 10 (en, zh, es, hi, ar, pt, ru, ja, fr, de); switchable from File ▸ Language. Disguise chrome stays in its native app language.
-
-## Skins
-
-| Skin | Looks like | Content shape |
-| --- | --- | --- |
-| Word | title bar, ribbon, ruler, paper on canvas, status bar | clean article |
-| VS Code | full workbench: activity bar, explorer, **real Monaco editor**, terminal, minimap | source markdown |
-| Claude Code | macOS terminal running the AI coding agent: tool calls, streamed answer, context meter | article as an agent reply |
-| Google Docs | doc top bar, menu, toolbar pill, page | clean article |
-| Notion | sidebar, List-view database, right peek panel with properties | article as a page |
-| Lark Docs / 飞书文档 | breadcrumbs, outline rail, AI summary chip, share button, optional name watermark | clean doc |
-| Slack | aubergine rail, channel list, message stream, composer | article as a thread of messages |
-| Lark / 飞书 | nav sidebar, chat list, group conversation with read receipts | article as group messages |
-| DingTalk / 钉钉 | icon rail, chat list, group chat with 已读 receipts and DING | article as group messages |
-| WeCom / 企业微信 | dark app rail, conversation list, group chat, workbench-style tools | article as group messages |
-| WPS 文字 | multi-tab strip, Chinese ribbon, A4 paper, member crown | clean article (Chinese chrome) |
-| Excel | ribbon, formula bar, real grid, sheet tabs | data table if present, else audit sheet |
-| Outlook | folders, message list, reading pane | article as an email |
-| Teams | purple rail, channel Posts tab, reply chain | article as a channel post |
-| Gmail | Material top bar, label sidebar, open conversation, smart replies | article as a newsletter |
-
-New pages open as Word by default, and you can switch the disguise anytime from
-the File menu, the command palette, or the hover-to-reveal switcher at the top of
-any article. Set **File ▸ Display name** and every disguise wears *your* name —
-avatars, the Notion workspace, and a Feishu-style tiled watermark.
-
-### The same article, wearing different faces
-
-| | |
+| Skin | Content shape |
 | --- | --- |
-| ![Claude Code skin](docs/screenshots/en-claude-code.jpg) **Claude Code** — the article arrives as an agent reply, tool calls and all | ![Notion skin](docs/screenshots/en-notion.jpg) **Notion** — a page inside a database, properties included |
-| ![Slack skin](docs/screenshots/en-slack.jpg) **Slack** — split into a believable run of messages | ![Gmail skin](docs/screenshots/en-gmail.jpg) **Gmail** — a newsletter, smart replies included |
-| ![Teams skin](docs/screenshots/en-teams.jpg) **Teams** — a channel post with replies | ![In-character loading](docs/screenshots/en-loading.jpg) **Even loading stays in character** — a document skeleton, never a spinner |
+| Word | Article with ribbon, ruler, and status bar |
+| VS Code | Markdown in a lightweight code view; no Monaco runtime |
+| Claude Code | Assistant reply in a terminal |
+| Google Docs | Document page |
+| Notion | Page inside a database |
+| Lark Docs / 飞书文档 | Document with outline and display-name watermark |
+| Slack | Channel messages |
+| Lark / 飞书 | Group messages |
+| DingTalk / 钉钉 | Group messages |
+| WeCom / 企业微信 | Group messages |
+| WPS 文字 | Chinese office document |
+| Excel | Data table or audit sheet |
+| Outlook | Email reading pane |
+| Teams | Channel post |
+| Gmail | Email conversation |
 
-### The boss key
+The boss key, display-name settings, local reading records, and language settings remain available. Skins support en, zh, es, hi, ar, pt, ru, ja, fr, and de; the offline import interface has English and Chinese copy. Changing language does not translate your articles, brands, code, or file paths.
 
-Press `Esc` (or let auto-hide trigger on window blur) and the screen flips to a
-plausible quarterly budget — real formulas, a real chart, twelve months of cash
-flow. Press `Esc` again to resume reading.
+## Privacy and local records
 
-![The boss key: a believable Q3 budget spreadsheet with formulas and a chart](docs/screenshots/en-boss-key.jpg)
+- Application scripts, styles, required icons, and license notices are embedded in the standalone gzip-packed HTML. The extension packages app resources as local extension files and does not load them from a CDN.
+- No third-party reader services or analytics. Opening a URL or clicking an article link reads the target page; clicking an image button requests its original address. The background target tab may still load its own scripts, images and other resources. Image controls apply to requests and display inside the reader, not to the website's own rendering.
+- The standalone HTML CSP permits HTTP(S) content and image requests but blocks external scripts, remote fonts, frames and form submissions. The extension uses its declared host permissions. Downloaded or imported HTML is never executed as scripts inside the reader; only HTTP(S) links and image addresses are kept.
+- Articles and settings stay in the current browser's local storage. They are not written back to `sneakread.html` or to imported files.
+- **The cache is not a backup.** Clearing browser data, private browsing, switching browsers, or moving the HTML file can make records unavailable. Keep your original files. Copying the reader HTML does not copy its stored records.
+- The boss key hides the reading screen; it does not encrypt local data or prevent inspection of browser storage.
 
-## Privacy, honestly
+## Build and develop
 
-No backend, no account, no cookies of our own. What you read is fetched by your
-browser and stays in your browser (localStorage). The public site loads
-Microsoft Clarity and Google Analytics for anonymous usage analytics — which
-*product* features are used (skins, boss key, samples), never the articles you
-read, never full URLs (hostnames and bucketed counts only), never anything you
-type. Both load lazily after first paint and only on sneakread.com; block them
-freely, nothing breaks. The self-hosted build sends nothing.
-
-## Stack
-
-- **Vite + React + TypeScript**, no backend — everything runs in the browser.
-- **Reader with front-end fallback**: Jina (`r.jinaai.cn` → `r.jina.ai`) → Firecrawl (keyless). Network-adaptive order, remembers the last-good provider, per-provider timeouts + cooldowns. No API key ever ships in the client.
-- **Real vendor assets** for pixel fidelity: [Monaco](https://microsoft.github.io/monaco-editor/) (the actual VS Code editor, lazy-loaded) for the VS Code skin, [Codicons](https://github.com/microsoft/vscode-codicons), [Fluent UI icons](https://github.com/microsoft/fluentui-system-icons) for Office, [Material Symbols](https://fonts.google.com/icons) for Docs, and self-hosted metric-compatible fonts (Inter/Carlito/Roboto/Cascadia Code).
-- React Markdown + GFM for rendered content; a modelled FY P&L (with formulas + chart) for the boss-key sheet.
-- Dependency-free i18n across 10 languages; SSG landing pages via a small prerender script.
-
-## Develop
+Use a Node.js version supported by Vite 8 (20.19+ or 22.12+) and pnpm. Installing dependencies and reading new URLs require network access; the interface, cached articles and local files do not.
 
 ```bash
 pnpm install
-pnpm dev        # http://localhost:5173  (the landing IS the reader)
-pnpm build      # static site into dist/ (client + prerendered landing pages)
+pnpm build      # Type-check and generate ../sneakread.html plus browser-extension/
 ```
 
-## Contribute a skin
+To bundle only, run `node build-single.mjs`. The standalone artifact is `sneakread.html` in the parent directory; the extension directory also receives `sneakread.html`, `app.js`, and `app.css`. The source `index.html` enforces strict CSP; rebuild and open the relevant artifact when developing; Vite HMR and preview servers are not used.
 
-SneakRead is built to be extended — **new disguises are the most welcome kind of
-contribution.** A skin is a [`SkinDefinition`](src/skins/types.ts) (id, label, app
-name, accent, its own `Logo`) plus a React component that renders a
-`DocumentRecord` as that app. Each of the fifteen built-in disguises lives in its
-own [`src/skins/<name>/`](src/skins/) folder — component, `style.css`, and logo
-together — and auto-registers via `import.meta.glob`; copy
-[`src/skins/_template/`](src/skins/_template/) to start. See
-**[CONTRIBUTING.md](CONTRIBUTING.md)** for the interface, the add-a-skin
-walkthrough, and the 以假乱真 fidelity checklist.
+Use modern Chrome, Edge, Firefox, or Safari with `DecompressionStream` support and JavaScript enabled. The gzip bootstrap uses native decompression and inline scripts, not `eval`. Decompressed third-party notices are stored in the page's `#third-party-licenses` element.
 
-## Author
+- Verified in Chromium from `file://`: direct reading of `https://www.w3.org/TR/DOM-Parsing/`, rejection of the non-CORS `https://example.com/`, cancellation, unsafe URL rejection, cached reading offline, and the boss key. Startup made no HTTP(S) requests; reading contacted only the entered target domains, without scraping services.
+- Loaded the extension in an isolated Chrome profile and exercised its actual `chrome-extension://` page against a local dynamic website: rendered relative links, in-reader chapter navigation, preserving the current document on failure, no image elements before clicking, successful image decoding after clicking, and failed-image retry controls. Clicking a load-image button nested in a link stays in the reader. The existing browser regression checks cover safe parsing and all 15 skins. Safari and Firefox have not been exercised.
+- Verified the Excel divider in the actual extension page: dragging in both directions, 20–80% limits, keyboard resizing, and the reading-only layout at 508px. The browser regression checks include keyboard resizing and boundary behavior.
 
-Built by **刘小排 (Liu Xiaopai)** — an indie hacker shipping small, useful things.
 
-- 微信公众号（WeChat）: **刘小排r**
-- X / Twitter: [@bourneliu66](https://twitter.com/bourneliu66)
-- Also by me: **[Raphael AI](https://raphael.app)** — free AI image generation.
+## Contributing and license
 
-If SneakRead saved you from a boring meeting, a ⭐ on GitHub means a lot — genuinely
-open-source apps like this are rare.
+Built with Vite, React, TypeScript, and React Markdown + GFM. See [CONTRIBUTING.md](CONTRIBUTING.md). Keep app resources embedded and network reading in `src/core/web-read.ts`; do not add third-party scraping services or execute article scripts.
 
-## License
+Original project: [SneakRead/sneakread](https://github.com/SneakRead/sneakread), by **刘小排 (Liu Xiaopai)**.
 
 [MIT](LICENSE) © 2026 SneakRead · 刘小排 (Liu Xiaopai)
-
----
-
-中文说明见 **[README.zh.md](README.zh.md)**。

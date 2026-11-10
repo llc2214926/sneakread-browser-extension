@@ -1,34 +1,16 @@
-import { Component, lazy, Suspense, useMemo, useState } from 'react'
-import type { ReactNode } from 'react'
+import { useMemo, useState } from 'react'
 import type { DocumentRecord } from '../../core/types'
 import type { SkinDefinition } from '../types'
-import { articleBody, getSiteLabel } from '../../core/content'
+import { articleBody } from '../../core/content'
 import { Codicon, MarkdownContent, CodeEditor, SkinSwitcher } from '../shared'
 import { VscodeLogo } from '../../logos'
 import { lang } from '../../i18n'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 
-// Monaco (the real VS Code editor) is lazy-loaded so its ~1MB only downloads
-// when the VS Code skin actually shows a document; the static CodeEditor is the
-// fallback while it loads or if the chunk/worker fails.
-const MonacoCode = lazy(() => import('../../monacoCode'))
-
-class MonacoBoundary extends Component<
-  { fallback: ReactNode; children: ReactNode },
-  { failed: boolean }
-> {
-  state = { failed: false }
-  static getDerivedStateFromError() {
-    return { failed: true }
-  }
-  render() {
-    if (this.state.failed) return this.props.fallback
-    return <Suspense fallback={this.props.fallback}>{this.props.children}</Suspense>
-  }
-}
 
 // ===== BLOCK APPENDED BELOW =====
 const vscMenus = ['File', 'Edit', 'Selection', 'View', 'Go', 'Run', 'Terminal', 'Help']
+const vscMenusZh = ['文件', '编辑', '选择', '查看', '转到', '运行', '终端', '帮助']
 
 export function VscMenuBar() {
   return (
@@ -36,13 +18,13 @@ export function VscMenuBar() {
       <span className="vsc-menubar-brand">
         <VscodeLogo size={17} />
       </span>
-      {vscMenus.map((item) => (
+      {vscMenus.map((item, index) => (
         <span
           key={item}
           className={item === 'File' ? 'is-clickable' : undefined}
           data-appmenu={item === 'File' ? 'file' : undefined}
         >
-          {item}
+          {lang === 'zh' ? vscMenusZh[index] : item}
         </span>
       ))}
     </div>
@@ -52,26 +34,26 @@ export function VscMenuBar() {
 export function ActivityBar() {
   return (
     <div className="vsc-activity">
-      <button type="button" className="vsc-act is-active" aria-label="Explorer">
+      <button type="button" className="vsc-act is-active" aria-label={lang === 'zh' ? '资源管理器' : 'Explorer'}>
         <Codicon name="files" size={24} />
       </button>
-      <button type="button" className="vsc-act" aria-label="Search">
+      <button type="button" className="vsc-act" aria-label={lang === 'zh' ? '搜索' : 'Search'}>
         <Codicon name="search" size={24} />
       </button>
-      <button type="button" className="vsc-act" aria-label="Source Control">
+      <button type="button" className="vsc-act" aria-label={lang === 'zh' ? '源代码管理' : 'Source Control'}>
         <Codicon name="source-control" size={24} />
         <span className="vsc-act-badge">1</span>
       </button>
-      <button type="button" className="vsc-act" aria-label="Run and Debug">
+      <button type="button" className="vsc-act" aria-label={lang === 'zh' ? '运行和调试' : 'Run and Debug'}>
         <Codicon name="debug-alt" size={24} />
       </button>
-      <button type="button" className="vsc-act" aria-label="Extensions">
+      <button type="button" className="vsc-act" aria-label={lang === 'zh' ? '扩展' : 'Extensions'}>
         <Codicon name="extensions" size={24} />
       </button>
-      <button type="button" className="vsc-act vsc-act-bottom" aria-label="Accounts">
+      <button type="button" className="vsc-act vsc-act-bottom" aria-label={lang === 'zh' ? '账户' : 'Accounts'}>
         <Codicon name="account" size={24} />
       </button>
-      <button type="button" className="vsc-act" aria-label="Settings">
+      <button type="button" className="vsc-act" aria-label={lang === 'zh' ? '设置' : 'Settings'}>
         <Codicon name="settings-gear" size={24} />
       </button>
     </div>
@@ -85,19 +67,19 @@ export function ActivityBar() {
 const vscodeEggsZh: Record<string, string> = {
   'README.md': `# SneakRead · 摸鱼
 
-在工位上读完整个互联网，伪装成你本来就开着的那些软件。
+在工位上阅读本地文字，伪装成你本来就开着的那些软件。
 
 ## 为什么
 因为"我在看文档"这句话，应该更经常是真的。
 
 ## 怎么用
-1. 粘贴一个网址。
+1. 打开允许跨域的网站，或粘贴正文、导入本地文件。
 2. 挑一个伪装——VS Code、Word、飞书、Notion、钉钉、Excel……
 3. 有人走过来的瞬间，按 \`Esc\`。
 
 ## 说明
-- 100% 本地运行，没有服务器知道你读了什么。
-- 阅读源自动切换：Jina -> Firecrawl，哪个通用哪个。
+- 界面资源全部内嵌，网页正文在本机解析。
+- 网址请求直接发给目标网站，不使用第三方中转，受 CORS 限制。
 
 MIT 开源。现在，去读点什么吧。`,
   'FAQ.md': `# 摸鱼 — 常见问题
@@ -127,37 +109,34 @@ Excel。没人敢打断一个对着表格皱眉的人。`,
 直觉不错。这里是没人告诉你的：
 
 - **Esc** —— 一键切成预算表，再按一次切回来。
-- **Cmd/Ctrl + K** —— 不碰鼠标就能打开任何网址。
-- 文章里的每个链接都能点，边读边逛，全程不脱伪装。
-- **文件**菜单是真的：语言、分享链接、失焦自动隐藏，都在里面。
+- **Cmd/Ctrl + K** —— 打开命令面板，导入本地内容。
+- 预览中的链接在阅读器内打开，图片点击后加载；源码页仍显示 Markdown 原文。
+- **文件**菜单是真的：语言、外观、失焦自动隐藏，都在里面。
 
 好了，装作无事发生。
 
 ---
 
 _SneakRead 是真开源（MIT）——这年头不多了。点个 star：_
-_https://github.com/SneakRead/sneakread_
-
-_作者：刘小排 · 公众号 刘小排r · X @bourneliu66_
-_我还做了 Raphael AI —— 免费 AI 生图 —— https://raphael.app_`,
+_https://github.com/SneakRead/sneakread_`,
 }
 
 const vscodeEggsEn: Record<string, string> = {
   'README.md': `# SneakRead
 
-Read the entire web at your desk, disguised as the tools you already have open.
+Read local text at your desk, disguised as the tools you already have open.
 
 ## Why
 Because "I'm reading the docs" should be true more often.
 
 ## How
-1. Paste a URL.
+1. Open a CORS-enabled website, paste text, or import a local file.
 2. Pick a disguise — VS Code, Word, Google Docs, Notion, Slack, Lark, Excel, Outlook.
 3. Press \`Esc\` the instant someone walks by.
 
 ## Notes
-- 100% client-side. No server ever sees your reading list.
-- Reader fallback: Jina -> Firecrawl, whichever your network allows.
+- All app resources are embedded; page text is parsed locally.
+- Requests go directly to the target website without a proxy; CORS still applies.
 
 MIT licensed. Now go read something.`,
   'FAQ.md': `# SneakRead — FAQ
@@ -189,19 +168,16 @@ Excel. Nobody interrupts someone frowning at a spreadsheet.`,
 Nice instinct. Here's what nobody tells you:
 
 - **Esc** — panic button. Instant budget spreadsheet.
-- **Cmd/Ctrl + K** — paste any URL without touching the mouse.
-- Every link in the article is clickable. Keep browsing, never leave the disguise.
-- The **File** menu is real: language, share link, boss auto-hide — all in there.
+- **Cmd/Ctrl + K** — open commands and import local content.
+- Preview links open inside the reader; images load when clicked. Source view remains literal Markdown.
+- The **File** menu is real: language, disguise, boss auto-hide — all in there.
 
 Now act natural.
 
 ---
 
 _SneakRead is open source (MIT) — genuinely, which is rare. Star it:_
-_https://github.com/SneakRead/sneakread_
-
-_Built by 刘小排 (Liu Xiaopai) · WeChat 刘小排r · X @bourneliu66_
-_Also by me: Raphael AI — free AI image generation — https://raphael.app_`,
+_https://github.com/SneakRead/sneakread_`,
 }
 
 const vscodeEggs = lang === 'zh' ? vscodeEggsZh : vscodeEggsEn
@@ -243,9 +219,8 @@ function buildVscodeFiles(doc: DocumentRecord) {
 export function VscodeSkin({ doc }: { doc: DocumentRecord }) {
   const sourceFile = doc.fileName.endsWith('.md') ? doc.fileName : 'source.md'
   const body = articleBody(doc)
-  // Default to the code view (the disguise); the Preview tab flips to rendered.
-  // Links are clickable in both views.
-  const [view, setView] = useState<'code' | 'preview'>('code')
+  // Start in preview so article links and image controls are available immediately.
+  const [view, setView] = useState<'code' | 'preview'>('preview')
   // An open easter-egg file (README/FAQ/TODO/secrets) shown in the editor
   // instead of the article; null = the article itself.
   const [openEgg, setOpenEgg] = useState<string | null>(null)
@@ -254,7 +229,7 @@ export function VscodeSkin({ doc }: { doc: DocumentRecord }) {
   const openSource = () => setOpenEgg(null)
   const outline = useMemo(() => {
     const matches = Array.from(body.matchAll(/^(#{1,4})\s+(.+)$/gm))
-    if (!matches.length) return [{ title: 'Overview', line: 1, level: 1 }]
+    if (!matches.length) return [{ title: lang === 'zh' ? '概览' : 'Overview', line: 1, level: 1 }]
     return matches.slice(0, 60).map((match) => ({
       title: match[2].replace(/\s+#+$/, '').trim(),
       line: body.slice(0, match.index ?? 0).split('\n').length,
@@ -262,11 +237,12 @@ export function VscodeSkin({ doc }: { doc: DocumentRecord }) {
     }))
   }, [body])
   const terminal = [
-    `$ jina read ${getSiteLabel(doc.sourceUrl)}`,
-    `✓ fetched via r.jina.ai reader cache`,
-    `✓ parsed ${doc.summary.words} words · ${doc.summary.links} links · ${doc.summary.images} images`,
-    `$ npm run dev`,
-    `  VITE ready in 214 ms  ➜  http://localhost:5173/`,
+    `$ open "${doc.fileName}"`,
+    lang === 'zh' ? '正文已在本机解析；界面资源全部内嵌' : 'Content parsed locally; all app resources embedded',
+    lang === 'zh'
+      ? `✓ 已解析 ${doc.summary.words} 字 · ${doc.summary.links} 个链接 · ${doc.summary.images} 张图片`
+      : `✓ parsed ${doc.summary.words} words · ${doc.summary.links} links · ${doc.summary.images} images`,
+    lang === 'zh' ? '单文件阅读器已就绪' : 'Single-file reader ready',
   ]
 
   return (
@@ -276,12 +252,12 @@ export function VscodeSkin({ doc }: { doc: DocumentRecord }) {
         <ActivityBar />
         <aside className="vsc-side">
           <div className="vsc-side-title">
-            EXPLORER
+            {lang === 'zh' ? '资源管理器' : 'EXPLORER'}
             <span>⋯</span>
           </div>
           <div className="vsc-tree-group">
             <div className="vsc-tree-head">
-              <ChevronDown size={13} aria-hidden="true" /> OPEN EDITORS
+              <ChevronDown size={13} aria-hidden="true" /> {lang === 'zh' ? '打开的编辑器' : 'OPEN EDITORS'}
             </div>
             <button type="button" className="vsc-file is-active" style={{ paddingLeft: 24 }}>
               <Codicon name="markdown" size={16} />
@@ -327,7 +303,7 @@ export function VscodeSkin({ doc }: { doc: DocumentRecord }) {
           </div>
           <div className="vsc-tree-group">
             <div className="vsc-tree-head">
-              <ChevronDown size={13} aria-hidden="true" /> OUTLINE
+              <ChevronDown size={13} aria-hidden="true" /> {lang === 'zh' ? '大纲' : 'OUTLINE'}
             </div>
             {outline.slice(0, 24).map((item) => (
               <button
@@ -365,7 +341,7 @@ export function VscodeSkin({ doc }: { doc: DocumentRecord }) {
               }}
             >
               <Codicon name="preview" size={16} />
-              Preview {sourceFile}
+              {lang === 'zh' ? '预览' : 'Preview'} {sourceFile}
             </button>
             {openEgg && (
               <button type="button" className="vsc-tab is-active">
@@ -374,7 +350,7 @@ export function VscodeSkin({ doc }: { doc: DocumentRecord }) {
                 <em
                   className="vsc-tab-close"
                   role="button"
-                  aria-label="Close"
+                  aria-label={lang === 'zh' ? '关闭' : 'Close'}
                   onClick={(event) => {
                     event.stopPropagation()
                     openSource()
@@ -385,12 +361,12 @@ export function VscodeSkin({ doc }: { doc: DocumentRecord }) {
               </button>
             )}
             <div className="vsc-tab-actions">
-              <button type="button" aria-label="Run">
+              <button type="button" aria-label={lang === 'zh' ? '运行' : 'Run'}>
                 <Codicon name="play" size={16} />
               </button>
               <button
                 type="button"
-                aria-label="Toggle preview"
+                aria-label={lang === 'zh' ? '切换预览' : 'Toggle preview'}
                 onClick={() => setView((v) => (v === 'code' ? 'preview' : 'code'))}
               >
                 <Codicon name="split-horizontal" size={16} />
@@ -411,11 +387,9 @@ export function VscodeSkin({ doc }: { doc: DocumentRecord }) {
               </>
             )}
           </div>
-          <div className={view === 'code' ? 'vsc-editor-scroll is-monaco' : 'vsc-editor-scroll'}>
+          <div className="vsc-editor-scroll">
             {view === 'code' ? (
-              <MonacoBoundary fallback={<CodeEditor text={eggBody ?? body} baseUrl={openEgg ? undefined : doc.sourceUrl} />}>
-                <MonacoCode text={eggBody ?? body} />
-              </MonacoBoundary>
+              <CodeEditor text={eggBody ?? body} baseUrl={openEgg ? undefined : doc.sourceUrl} />
             ) : (
               <div className="vsc-render markdown-body">
                 {!openEgg && <SkinSwitcher className="vsc-switch" />}
@@ -426,12 +400,12 @@ export function VscodeSkin({ doc }: { doc: DocumentRecord }) {
           </div>
           <div className="vsc-panel">
             <div className="vsc-panel-tabs">
-              <button type="button">PROBLEMS</button>
-              <button type="button">OUTPUT</button>
+              <button type="button">{lang === 'zh' ? '问题' : 'PROBLEMS'}</button>
+              <button type="button">{lang === 'zh' ? '输出' : 'OUTPUT'}</button>
               <button type="button" className="is-active">
-                <Codicon name="terminal" size={14} /> TERMINAL
+                <Codicon name="terminal" size={14} /> {lang === 'zh' ? '终端' : 'TERMINAL'}
               </button>
-              <button type="button">PORTS</button>
+              <button type="button">{lang === 'zh' ? '端口' : 'PORTS'}</button>
             </div>
             <pre className="vsc-terminal">{terminal.join('\n')}</pre>
           </div>
@@ -451,8 +425,8 @@ export function VscodeSkin({ doc }: { doc: DocumentRecord }) {
         <span>
           <Codicon name="error" size={13} /> 0 <Codicon name="warning" size={13} /> 0
         </span>
-        <span className="vsc-status-right">Ln 1, Col 1</span>
-        <span>Spaces: 2</span>
+        <span className="vsc-status-right">{lang === 'zh' ? '行 1，列 1' : 'Ln 1, Col 1'}</span>
+        <span>{lang === 'zh' ? '空格: 2' : 'Spaces: 2'}</span>
         <span>UTF-8</span>
         <span>LF</span>
         <span>

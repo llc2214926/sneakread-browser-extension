@@ -1,0 +1,92 @@
+@font-face {
+  font-family: "Material Symbols Rounded";
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url("./material-subset.woff2") format("woff2");
+}
+.material-symbols-rounded {
+  font-family: "Material Symbols Rounded";
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "liga";
+}
+
+@font-face {
+  font-family: "codicon";
+  font-display: block;
+  src: url("./codicon-subset.woff2") format("woff2");
+}
+.codicon[class*='codicon-'] {
+  font: normal normal normal 16px/1 codicon;
+  display: inline-block;
+  text-decoration: none;
+  text-rendering: auto;
+  text-align: center;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  user-select: none;
+}
+
+.codicon-add:before{content:"\ea60"}
+.codicon-lightbulb:before{content:"\ea61"}
+.codicon-source-control:before{content:"\ea68"}
+.codicon-star:before{content:"\ea6a"}
+.codicon-warning:before{content:"\ea6c"}
+.codicon-search:before{content:"\ea6d"}
+.codicon-edit:before{content:"\ea73"}
+.codicon-lock:before{content:"\ea75"}
+.codicon-close:before{content:"\ea76"}
+.codicon-sync:before{content:"\ea77"}
+.codicon-file:before{content:"\ea7b"}
+.codicon-reply:before{content:"\ea7d"}
+.codicon-history:before{content:"\ea82"}
+.codicon-terminal:before{content:"\ea85"}
+.codicon-error:before{content:"\ea87"}
+.codicon-archive:before{content:"\ea98"}
+.codicon-bell:before{content:"\eaa2"}
+.codicon-check:before{content:"\eab2"}
+.codicon-checklist:before{content:"\eab3"}
+.codicon-chevron-down:before{content:"\eab4"}
+.codicon-chevron-right:before{content:"\eab6"}
+.codicon-code:before{content:"\eac4"}
+.codicon-extensions:before{content:"\eae6"}
+.codicon-file-code:before{content:"\eae9"}
+.codicon-files:before{content:"\eaf0"}
+.codicon-home:before{content:"\eb06"}
+.codicon-inbox:before{content:"\eb09"}
+.codicon-json:before{content:"\eb0f"}
+.codicon-link:before{content:"\eb15"}
+.codicon-loading:before{content:"\eb19"}
+.codicon-markdown:before{content:"\eb1d"}
+.codicon-play:before{content:"\eb2c"}
+.codicon-preview:before{content:"\eb2f"}
+.codicon-refresh:before{content:"\eb37"}
+.codicon-remote:before{content:"\eb3a"}
+.codicon-remove:before{content:"\eb3b"}
+.codicon-report:before{content:"\eb42"}
+.codicon-settings-gear:before{content:"\eb51"}
+.codicon-settings:before{content:"\eb52"}
+.codicon-split-horizontal:before{content:"\eb56"}
+.codicon-debug-alt:before{content:"\eb91"}
+.codicon-menu:before{content:"\eb94"}
+.codicon-account:before{content:"\eb99"}
+.codicon-redo:before{content:"\ebb0"}
+.codicon-copy:before{content:"\ebcc"}
+.codicon-send:before{content:"\ec0f"}
+.codicon-share:before{content:"\ec25"}
+.codicon-vscode:before{content:"\ec29"}
+.codicon-git-branch:before{content:"\ec6f"}
+.codicon-forward:before{content:"\ec73"}
+.codicon-download:before{content:"\ec74"}

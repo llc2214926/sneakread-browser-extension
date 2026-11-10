@@ -31,6 +31,12 @@ const STR = {
     shortcut: '添加快捷方式',
     ai: 'AI 速览',
     trial: '试用',
+    menu: '菜单',
+    home: '主页',
+    notifications: '通知',
+    more: '更多',
+    search: '搜索',
+    new: '新建',
   },
   en: {
     space: 'Wiki',
@@ -41,6 +47,12 @@ const STR = {
     shortcut: 'Add shortcut',
     ai: 'AI Summary',
     trial: 'Beta',
+    menu: 'Menu',
+    home: 'Home',
+    notifications: 'Notifications',
+    more: 'More',
+    search: 'Search',
+    new: 'New',
   },
 }
 
@@ -82,10 +94,10 @@ export function LarkDocsSkin({ doc }: { doc: DocumentRecord }) {
       )}
       <header className="ld-topbar">
         <div className="ld-top-left">
-          <button type="button" className="ld-ic" aria-label="Menu">
+          <button type="button" className="ld-ic" aria-label={t.menu}>
             <PanelLeftClose size={18} />
           </button>
-          <button type="button" className="ld-ic" aria-label="Home">
+          <button type="button" className="ld-ic" aria-label={t.home}>
             <House size={18} />
           </button>
           <div className="ld-title-block">
@@ -114,17 +126,17 @@ export function LarkDocsSkin({ doc }: { doc: DocumentRecord }) {
             <Globe size={15} />
             {t.share}
           </button>
-          <button type="button" className="ld-ic" aria-label="Notifications">
+          <button type="button" className="ld-ic" aria-label={t.notifications}>
             <Bell size={18} />
           </button>
-          <button type="button" className="ld-ic" data-appmenu="file" aria-label="More">
+          <button type="button" className="ld-ic" data-appmenu="file" aria-label={t.more}>
             <MoreHorizontal size={18} />
           </button>
           <span className="ld-sep" aria-hidden="true" />
-          <button type="button" className="ld-ic" aria-label="Search">
+          <button type="button" className="ld-ic" aria-label={t.search}>
             <Search size={18} />
           </button>
-          <button type="button" className="ld-ic" aria-label="New">
+          <button type="button" className="ld-ic" aria-label={t.new}>
             <Plus size={18} />
           </button>
           <span className="ld-avatar">{aliasInitial()}</span>

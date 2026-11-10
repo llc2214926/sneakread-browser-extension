@@ -8,6 +8,7 @@ import type { DocumentRecord } from '../../core/types'
 import type { SkinDefinition } from '../types'
 import { articleBody, getSiteLabel } from '../../core/content'
 import { MarkdownContent, SkinSwitcher } from '../shared'
+import { lang } from '../../i18n'
 import {
   Alert24Regular,
   Chat24Regular,
@@ -63,19 +64,21 @@ export function TeamsLogo({ size = 26, className }: { size?: number; className?:
   )
 }
 
+const zh = lang === 'zh'
+
 const RAIL: { label: string; icon: ReactNode; active?: boolean }[] = [
-  { label: 'Activity', icon: <Alert24Regular /> },
-  { label: 'Chat', icon: <Chat24Regular /> },
-  { label: 'Teams', icon: <PeopleTeam24Filled />, active: true },
-  { label: 'Calendar', icon: <CalendarLtr24Regular /> },
-  { label: 'Calls', icon: <Call24Regular /> },
+  { label: zh ? '动态' : 'Activity', icon: <Alert24Regular /> },
+  { label: zh ? '聊天' : 'Chat', icon: <Chat24Regular /> },
+  { label: zh ? '团队' : 'Teams', icon: <PeopleTeam24Filled />, active: true },
+  { label: zh ? '日历' : 'Calendar', icon: <CalendarLtr24Regular /> },
+  { label: zh ? '通话' : 'Calls', icon: <Call24Regular /> },
   { label: 'OneDrive', icon: <Cloud24Regular /> },
-  { label: 'Apps', icon: <Apps24Regular /> },
+  { label: zh ? '应用' : 'Apps', icon: <Apps24Regular /> },
 ]
 
-const TEAM_NAME = 'Northwind Product Team'
-const CHANNELS_BEFORE = ['General', 'Announcements']
-const CHANNELS_AFTER = ['Design', 'Engineering']
+const TEAM_NAME = zh ? 'Northwind 产品团队' : 'Northwind Product Team'
+const CHANNELS_BEFORE = zh ? ['常规', '公告'] : ['General', 'Announcements']
+const CHANNELS_AFTER = zh ? ['设计', '工程'] : ['Design', 'Engineering']
 const MEMBERS = [
   { initial: 'P', hue: 268 },
   { initial: 'A', hue: 168 },
@@ -91,12 +94,15 @@ function hueOf(seed: string) {
 
 function clockOf(d: Date) {
   const h24 = d.getHours()
+  if (zh) return `${String(h24).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
   const h = h24 % 12 === 0 ? 12 : h24 % 12
   const ampm = h24 >= 12 ? 'PM' : 'AM'
   return `${h}:${String(d.getMinutes()).padStart(2, '0')} ${ampm}`
 }
 function dayOf(d: Date, now: Date) {
-  return d.toDateString() === now.toDateString() ? 'Today' : 'Yesterday'
+  return d.toDateString() === now.toDateString()
+    ? (zh ? '今天' : 'Today')
+    : (zh ? '昨天' : 'Yesterday')
 }
 function stampOf(d: Date, now: Date) {
   return `${dayOf(d, now)} ${clockOf(d)}`
@@ -130,13 +136,16 @@ export function TeamsSkin({ doc }: { doc: DocumentRecord }) {
   const body = articleBody(doc)
   const site = getSiteLabel(doc.sourceUrl)
   // The digest bot that "posted" the article, derived from the document.
-  const botName = doc.projectName ? `${doc.projectName} Digest` : 'News Digest'
+  const botName = doc.projectName
+    ? `${doc.projectName}${zh ? ' 摘要' : ' Digest'}`
+    : (zh ? '新闻摘要' : 'News Digest')
   const botInitial = botName.trim().charAt(0).toUpperCase()
   const botHue = hueOf(botName)
   // Channel name generated from the article's source site, e.g. "theonion-reads".
   const root = site.split('.').slice(-2, -1)[0] || site
-  const channel =
-    `${root.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}-reads`.slice(0, 26)
+  const channel = zh
+    ? `${root}阅读`
+    : `${root.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}-reads`.slice(0, 26)
 
   // Dynamic timestamps: the post landed ~47 minutes ago, replies followed.
   const times = useMemo(() => {
@@ -156,19 +165,19 @@ export function TeamsSkin({ doc }: { doc: DocumentRecord }) {
     <div className="teams">
       <div className="tm-titlebar">
         <div className="tm-title-left">
-          <button type="button" className="tm-navbtn" aria-label="Go back">
+          <button type="button" className="tm-navbtn" aria-label={zh ? '后退' : 'Go back'}>
             <ArrowLeft20Regular />
           </button>
-          <button type="button" className="tm-navbtn is-dim" aria-label="Go forward">
+          <button type="button" className="tm-navbtn is-dim" aria-label={zh ? '前进' : 'Go forward'}>
             <ArrowRight20Regular />
           </button>
         </div>
         <div className="tm-search">
           <Search20Regular />
-          <span>Search (Ctrl+E)</span>
+          <span>{zh ? '搜索 (Ctrl+E)' : 'Search (Ctrl+E)'}</span>
         </div>
         <div className="tm-title-right">
-          <button type="button" className="tm-titlebar-ic" aria-label="Settings and more">
+          <button type="button" className="tm-titlebar-ic" aria-label={zh ? '设置及更多' : 'Settings and more'}>
             <MoreHorizontal20Regular />
           </button>
           <span className="tm-me">
@@ -195,7 +204,7 @@ export function TeamsSkin({ doc }: { doc: DocumentRecord }) {
 
         <aside className="tm-side">
           <div className="tm-side-head">
-            <b>Teams</b>
+            <b>{zh ? '团队' : 'Teams'}</b>
             <span className="tm-side-icons">
               <span className="tm-side-icon" aria-hidden="true">
                 <Filter20Regular />
@@ -242,13 +251,13 @@ export function TeamsSkin({ doc }: { doc: DocumentRecord }) {
                 <em>12</em>
               </span>
               <button type="button" className="tm-meet">
-                <Video20Regular /> Meet <ChevronDown16Regular />
+                <Video20Regular /> {zh ? '开会' : 'Meet'} <ChevronDown16Regular />
               </button>
               <button
                 type="button"
                 className="tm-chan-more"
                 data-appmenu="file"
-                aria-label="More options"
+                aria-label={zh ? '更多选项' : 'More options'}
               >
                 <MoreHorizontal20Regular />
               </button>
@@ -256,9 +265,9 @@ export function TeamsSkin({ doc }: { doc: DocumentRecord }) {
           </header>
 
           <div className="tm-tabs">
-            <span className="tm-tab is-active">Posts</span>
-            <span className="tm-tab">Files</span>
-            <span className="tm-tab">Notes</span>
+            <span className="tm-tab is-active">{zh ? '帖子' : 'Posts'}</span>
+            <span className="tm-tab">{zh ? '文件' : 'Files'}</span>
+            <span className="tm-tab">{zh ? '笔记' : 'Notes'}</span>
             <span className="tm-tab-add" aria-hidden="true">
               <Add20Regular />
             </span>
@@ -279,7 +288,7 @@ export function TeamsSkin({ doc }: { doc: DocumentRecord }) {
                     </span>
                     <div className="tm-post-who">
                       <b>{botName}</b>
-                      <i className="tm-bot">BOT</i>
+                      <i className="tm-bot">{zh ? '机器人' : 'BOT'}</i>
                       <span className="tm-time">{times.post}</span>
                     </div>
                   </div>
@@ -298,7 +307,7 @@ export function TeamsSkin({ doc }: { doc: DocumentRecord }) {
                     <span style={{ background: 'hsl(268 45% 50%)' }}>P</span>
                     <span style={{ background: 'hsl(168 45% 38%)' }}>A</span>
                   </span>
-                  3 replies from Priya and Alex
+                  {zh ? 'Priya 和 Alex 的 3 条回复' : '3 replies from Priya and Alex'}
                 </div>
 
                 <div className="tm-reply">
@@ -310,7 +319,7 @@ export function TeamsSkin({ doc }: { doc: DocumentRecord }) {
                       <b>Priya N.</b>
                       <span className="tm-time">{times.reply1}</span>
                     </div>
-                    <div className="tm-reply-text">Great find, sharing with the team</div>
+                    <div className="tm-reply-text">{zh ? '发现得不错，分享给团队了' : 'Great find, sharing with the team'}</div>
                   </div>
                 </div>
                 <div className="tm-reply">
@@ -322,12 +331,12 @@ export function TeamsSkin({ doc }: { doc: DocumentRecord }) {
                       <b>Alex R.</b>
                       <span className="tm-time">{times.reply2}</span>
                     </div>
-                    <div className="tm-reply-text">Bookmarked 👍</div>
+                    <div className="tm-reply-text">{zh ? '已收藏 👍' : 'Bookmarked 👍'}</div>
                   </div>
                 </div>
 
                 <div className="tm-replybox">
-                  <div className="tm-replybox-inner">Reply</div>
+                  <div className="tm-replybox-inner">{zh ? '回复' : 'Reply'}</div>
                 </div>
               </article>
             </div>

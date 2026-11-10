@@ -3,6 +3,7 @@ import type { SkinDefinition } from '../types'
 import { articleBody, clockLabel, getSiteLabel, minutesAgo } from '../../core/content'
 import { aliasInitial } from '../../core/alias'
 import { MarkdownContent, SkinSwitcher, splitMarkdownForChat } from '../shared'
+import { lang } from '../../i18n'
 import {
   Search,
   CircleHelp,
@@ -30,18 +31,22 @@ import {
   Star,
 } from 'lucide-react'
 
+const zh = lang === 'zh'
+
 const RAIL = [
-  { icon: House, label: 'Home', active: true },
-  { icon: MessageSquareText, label: 'DMs' },
-  { icon: Bell, label: 'Activity' },
-  { icon: Clock, label: 'Later' },
-  { icon: MoreHorizontal, label: 'More' },
+  { icon: House, label: zh ? '主页' : 'Home', active: true },
+  { icon: MessageSquareText, label: zh ? '私信' : 'DMs' },
+  { icon: Bell, label: zh ? '动态' : 'Activity' },
+  { icon: Clock, label: zh ? '稍后处理' : 'Later' },
+  { icon: MoreHorizontal, label: zh ? '更多' : 'More' },
 ]
-const CHANNELS = ['general', 'random', 'engineering', 'design-crit', 'watercooler']
+const CHANNELS = zh
+  ? ['常规', '闲聊', '工程', '设计评审', '茶水间']
+  : ['general', 'random', 'engineering', 'design-crit', 'watercooler']
 const DMS = [
-  { name: 'Design Sync', hue: 168, on: true },
-  { name: 'On-call', hue: 268, on: false },
-  { name: 'Data Team', hue: 24, on: true },
+  { name: zh ? '设计同步' : 'Design Sync', hue: 168, on: true },
+  { name: zh ? '值班' : 'On-call', hue: 268, on: false },
+  { name: zh ? '数据团队' : 'Data Team', hue: 24, on: true },
 ]
 
 // A rounded-square avatar hue from a string — deterministic (SSR/resume safe).
@@ -65,12 +70,12 @@ export function SlackSkin({ doc }: { doc: DocumentRecord }) {
     // Trim at a segment boundary — "#world-cup-2026-is-balo" reads fake.
     channel = channel.slice(0, 22).replace(/-[^-]*$/, '') || channel.slice(0, 22)
   }
-  if (!channel) channel = 'reading'
+  if (!channel) channel = zh ? '阅读' : 'reading'
   const chunks = splitMarkdownForChat(body)
   // Real, recent clock times: the run of messages ends a few minutes ago.
   const stampAt = (i: number) =>
-    clockLabel(minutesAgo(6 + (chunks.length - 1 - i) * 3), { ampm: true })
-  const workspace = 'Project HQ'
+    clockLabel(minutesAgo(6 + (chunks.length - 1 - i) * 3), { ampm: !zh })
+  const workspace = zh ? '项目总部' : 'Project HQ'
 
   return (
     <div className="slack">
@@ -81,9 +86,9 @@ export function SlackSkin({ doc }: { doc: DocumentRecord }) {
         </div>
         <div className="sl-search">
           <Search size={15} />
-          <span>Search {workspace}</span>
+          <span>{zh ? '搜索' : 'Search'} {workspace}</span>
         </div>
-        <button type="button" className="sl-top-help" aria-label="Help">
+        <button type="button" className="sl-top-help" aria-label={zh ? '帮助' : 'Help'}>
           <CircleHelp size={18} />
         </button>
       </div>
@@ -105,7 +110,7 @@ export function SlackSkin({ doc }: { doc: DocumentRecord }) {
             ))}
           </div>
           <div className="sl-rail-foot">
-            <button type="button" className="sl-rail-new" aria-label="New">
+            <button type="button" className="sl-rail-new" aria-label={zh ? '新建' : 'New'}>
               <Plus size={20} />
             </button>
             <span className="sl-rail-me" style={{ background: `hsl(${hue} 55% 42%)` }}>
@@ -125,11 +130,11 @@ export function SlackSkin({ doc }: { doc: DocumentRecord }) {
           </div>
           <div className="sl-side-scroll">
             <div className="sl-quick">
-              <span className="sl-quick-row">Threads</span>
-              <span className="sl-quick-row">Drafts &amp; sent</span>
+              <span className="sl-quick-row">{zh ? '话题' : 'Threads'}</span>
+              <span className="sl-quick-row">{zh ? '草稿与已发送' : 'Drafts & sent'}</span>
             </div>
             <div className="sl-section">
-              <ChevronDown size={13} /> Channels
+              <ChevronDown size={13} /> {zh ? '频道' : 'Channels'}
             </div>
             {CHANNELS.map((c) => (
               <span key={c} className="sl-chan">
@@ -142,7 +147,7 @@ export function SlackSkin({ doc }: { doc: DocumentRecord }) {
               {channel}
             </span>
             <div className="sl-section">
-              <ChevronDown size={13} /> Direct messages
+              <ChevronDown size={13} /> {zh ? '私信' : 'Direct messages'}
             </div>
             {DMS.map((d) => (
               <span key={d.name} className="sl-dm">
@@ -168,7 +173,7 @@ export function SlackSkin({ doc }: { doc: DocumentRecord }) {
                 <Star size={14} />
               </span>
               <button type="button" className="sl-huddle">
-                <Headphones size={15} /> Huddle
+                <Headphones size={15} /> {zh ? '快速会议' : 'Huddle'}
               </button>
               <span className="sl-chan-ic">
                 <Video size={16} />
@@ -182,7 +187,7 @@ export function SlackSkin({ doc }: { doc: DocumentRecord }) {
           <div className="sl-stream">
             <SkinSwitcher className="sl-switch" />
             <div className="sl-day">
-              <span>Today</span>
+              <span>{zh ? '今天' : 'Today'}</span>
             </div>
 
             <div className="sl-msg sl-msg-lead">
@@ -192,7 +197,7 @@ export function SlackSkin({ doc }: { doc: DocumentRecord }) {
               <div className="sl-msg-content">
                 <div className="sl-msg-head">
                   <b className="sl-msg-name">{author}</b>
-                  <span className="sl-app-badge">APP</span>
+                  <span className="sl-app-badge">{zh ? '应用' : 'APP'}</span>
                   <span className="sl-msg-time">{stampAt(0)}</span>
                 </div>
                 <div className="sl-msg-body markdown-body">
@@ -232,7 +237,7 @@ export function SlackSkin({ doc }: { doc: DocumentRecord }) {
               <List size={15} />
               <Code size={15} />
             </div>
-            <div className="sl-composer-input">Message #{channel}</div>
+            <div className="sl-composer-input">{zh ? '发送消息到' : 'Message'} #{channel}</div>
             <div className="sl-composer-foot">
               <span className="sl-composer-left">
                 <Plus size={16} />

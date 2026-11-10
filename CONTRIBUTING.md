@@ -10,6 +10,7 @@ src/
   core/
     types.ts        # DocumentRecord, SkinId
     content.ts      # pure transforms: articleBody, emailBody, clockLabel, …
+    local-import.ts # local UTF-8 text/Markdown/HTML import; no network
     alias.ts        # the user's display name, worn by every disguise
   skins/
     types.ts        # the SkinDefinition interface (Surface + optional Logo)
@@ -63,9 +64,9 @@ A skin never imports the app shell; it imports only `core/*` and `skins/shared/*
       [Codicons](https://github.com/microsoft/vscode-codicons),
       [Fluent icons](https://github.com/microsoft/fluentui-system-icons),
       [Material Symbols](https://fonts.google.com/icons) — not lookalikes.
-- [ ] **Real fonts** (we bundle Inter/Carlito/Roboto/Cascadia Code).
-- [ ] **Links stay clickable** — the app intercepts `a[href^=http]` so users keep
-      browsing disguised. Don't swallow those clicks.
+- [ ] **System or embedded fonts only**; no runtime font downloads.
+- [ ] **Imported content stays inert** — no article images, external navigation,
+      script execution, embedded frames, or network fetching.
 - [ ] **No global keyboard handlers** that break `Esc` (boss key) or `⌘K`.
 - [ ] **No external network** and **no direct `localStorage`** from a skin
       (use `core/alias.ts` for the display name).
@@ -89,8 +90,12 @@ A skin never imports the app shell; it imports only `core/*` and `skins/shared/*
 
 ```bash
 pnpm install
-pnpm dev      # http://localhost:5173
-pnpm build    # tsc + client + SSR prerender
+pnpm build    # type-check + ../sneakread.html; open the file after rebuilding
 ```
+
+The source `index.html` is a build-instructions page protected by the same strict
+CSP as the generated reader. There is no online development server, HMR, SSR,
+or SSG entry. Keep all runtime resources embedded and retain the build's offline
+assertions. Local browser records are a cache, not a backup.
 
 By contributing you agree your work is licensed under the [MIT License](LICENSE).

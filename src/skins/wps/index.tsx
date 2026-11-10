@@ -138,7 +138,8 @@ function WpsDocGlyph({ size = 15 }: { size?: number }) {
 
 export function WpsSkin({ doc }: { doc: DocumentRecord }) {
   const body = articleBody(doc)
-  const t = lang === 'zh' ? STR.zh : STR.en
+  const zh = lang === 'zh'
+  const t = zh ? STR.zh : STR.en
   const pages = Math.max(1, Math.ceil((doc.summary.words || 1) / 550))
   const toolIcons = [History, MessageSquarePlus, Volume2, Moon, Smartphone, MoreHorizontal]
 
@@ -178,7 +179,7 @@ export function WpsSkin({ doc }: { doc: DocumentRecord }) {
 
       {/* 菜单 / 工具行 */}
       <div className="wps-menurow">
-        <nav className="wps-menus" aria-label="Menus">
+        <nav className="wps-menus" aria-label={zh ? '菜单' : 'Menus'}>
           <span className="wps-menu wps-menu-file" data-appmenu="file">
             {t.menus[0]}
             <ChevronDown size={11} className="wps-menu-caret" aria-hidden="true" />
@@ -250,37 +251,37 @@ export function WpsSkin({ doc }: { doc: DocumentRecord }) {
                 {t.fontSize}
                 <ChevronDown size={11} aria-hidden="true" />
               </span>
-              <button type="button" className="wps-ic" aria-label="Increase font size">
+              <button type="button" className="wps-ic" aria-label={zh ? '增大字号' : 'Increase font size'}>
                 <AArrowUp size={17} strokeWidth={1.7} />
               </button>
-              <button type="button" className="wps-ic" aria-label="Decrease font size">
+              <button type="button" className="wps-ic" aria-label={zh ? '减小字号' : 'Decrease font size'}>
                 <AArrowDown size={16} strokeWidth={1.7} />
               </button>
             </div>
             <div className="wps-row">
-              <button type="button" className="wps-ic" aria-label="Bold">
+              <button type="button" className="wps-ic" aria-label={zh ? '加粗' : 'Bold'}>
                 <Bold size={15} strokeWidth={2} />
               </button>
-              <button type="button" className="wps-ic" aria-label="Italic">
+              <button type="button" className="wps-ic" aria-label={zh ? '斜体' : 'Italic'}>
                 <Italic size={15} strokeWidth={1.7} />
               </button>
-              <button type="button" className="wps-ic" aria-label="Underline">
+              <button type="button" className="wps-ic" aria-label={zh ? '下划线' : 'Underline'}>
                 <Underline size={15} strokeWidth={1.7} />
               </button>
-              <button type="button" className="wps-ic" aria-label="Strikethrough">
+              <button type="button" className="wps-ic" aria-label={zh ? '删除线' : 'Strikethrough'}>
                 <Strikethrough size={15} strokeWidth={1.7} />
               </button>
-              <button type="button" className="wps-ic" aria-label="Superscript">
+              <button type="button" className="wps-ic" aria-label={zh ? '上标' : 'Superscript'}>
                 <Superscript size={15} strokeWidth={1.7} />
               </button>
-              <button type="button" className="wps-ic" aria-label="Clear formatting">
+              <button type="button" className="wps-ic" aria-label={zh ? '清除格式' : 'Clear formatting'}>
                 <Eraser size={15} strokeWidth={1.7} />
               </button>
-              <button type="button" className="wps-ic wps-ic-hl" aria-label="Highlight">
+              <button type="button" className="wps-ic wps-ic-hl" aria-label={zh ? '文本突出显示' : 'Highlight'}>
                 <Highlighter size={15} strokeWidth={1.7} />
                 <i aria-hidden="true" />
               </button>
-              <button type="button" className="wps-ic wps-ic-color" aria-label="Font color">
+              <button type="button" className="wps-ic wps-ic-color" aria-label={zh ? '字体颜色' : 'Font color'}>
                 <Baseline size={15} strokeWidth={1.7} />
                 <i aria-hidden="true" />
               </button>
@@ -291,30 +292,30 @@ export function WpsSkin({ doc }: { doc: DocumentRecord }) {
         <div className="wps-group">
           <div className="wps-col">
             <div className="wps-row">
-              <button type="button" className="wps-ic" aria-label="Bullets">
+              <button type="button" className="wps-ic" aria-label={zh ? '项目符号' : 'Bullets'}>
                 <List size={15} strokeWidth={1.7} />
               </button>
-              <button type="button" className="wps-ic" aria-label="Numbering">
+              <button type="button" className="wps-ic" aria-label={zh ? '编号' : 'Numbering'}>
                 <ListOrdered size={15} strokeWidth={1.7} />
               </button>
-              <button type="button" className="wps-ic" aria-label="Decrease indent">
+              <button type="button" className="wps-ic" aria-label={zh ? '减少缩进' : 'Decrease indent'}>
                 <IndentDecrease size={15} strokeWidth={1.7} />
               </button>
-              <button type="button" className="wps-ic" aria-label="Increase indent">
+              <button type="button" className="wps-ic" aria-label={zh ? '增加缩进' : 'Increase indent'}>
                 <IndentIncrease size={15} strokeWidth={1.7} />
               </button>
             </div>
             <div className="wps-row">
-              <button type="button" className="wps-ic is-on" aria-label="Align left">
+              <button type="button" className="wps-ic is-on" aria-label={zh ? '左对齐' : 'Align left'}>
                 <AlignLeft size={15} strokeWidth={1.7} />
               </button>
-              <button type="button" className="wps-ic" aria-label="Align center">
+              <button type="button" className="wps-ic" aria-label={zh ? '居中对齐' : 'Align center'}>
                 <AlignCenter size={15} strokeWidth={1.7} />
               </button>
-              <button type="button" className="wps-ic" aria-label="Align right">
+              <button type="button" className="wps-ic" aria-label={zh ? '右对齐' : 'Align right'}>
                 <AlignRight size={15} strokeWidth={1.7} />
               </button>
-              <button type="button" className="wps-ic" aria-label="Justify">
+              <button type="button" className="wps-ic" aria-label={zh ? '两端对齐' : 'Justify'}>
                 <AlignJustify size={15} strokeWidth={1.7} />
               </button>
             </div>
@@ -384,19 +385,19 @@ export function WpsSkin({ doc }: { doc: DocumentRecord }) {
           {t.saved}
         </span>
         <div className="wps-status-right">
-          <button type="button" className="wps-view is-on" aria-label="Page view">
+          <button type="button" className="wps-view is-on" aria-label={zh ? '页面视图' : 'Page view'}>
             <FileText size={14} strokeWidth={1.7} />
           </button>
-          <button type="button" className="wps-view" aria-label="Read view">
+          <button type="button" className="wps-view" aria-label={zh ? '阅读视图' : 'Read view'}>
             <BookOpen size={14} strokeWidth={1.7} />
           </button>
-          <button type="button" className="wps-zoombtn" aria-label="Zoom out">
+          <button type="button" className="wps-zoombtn" aria-label={zh ? '缩小' : 'Zoom out'}>
             <Minus size={12} strokeWidth={2} />
           </button>
           <span className="wps-zoomtrack" aria-hidden="true">
             <i />
           </span>
-          <button type="button" className="wps-zoombtn" aria-label="Zoom in">
+          <button type="button" className="wps-zoombtn" aria-label={zh ? '放大' : 'Zoom in'}>
             <Plus size={12} strokeWidth={2} />
           </button>
           <span className="wps-zoompct">100%</span>

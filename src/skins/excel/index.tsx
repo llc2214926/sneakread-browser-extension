@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type CSSProperties } from 'react'
 import type { DocumentRecord } from '../../core/types'
 import type { SkinDefinition } from '../types'
 import {
@@ -7,7 +7,6 @@ import {
   extractHeadings,
   extractLinks,
   extractImages,
-  safeHttpUrl,
 } from '../../core/content'
 import { MsTitleBar, MsRibbonTabs, MsRibbonRight, MarkdownContent, SkinSwitcher } from '../shared'
 import { ExcelLogo } from '../../logos'
@@ -37,7 +36,7 @@ import {
 } from '@fluentui/react-icons'
 
 // ===== BLOCK APPENDED BELOW =====
-type XlCell = { text: string; href?: string }
+type XlCell = { text: string }
 const colLetter = (i: number) =>
   i < 26
     ? String.fromCharCode(65 + i)
@@ -61,58 +60,57 @@ function markdownTableToSheet(markdown: string): XlCell[][] | null {
   const header = parseRow(table[0])
   if (header.length < 2) return null
   const toCells = (arr: string[]): XlCell[] =>
-    arr.map((tx) => ({ text: tx, href: safeHttpUrl(tx) ?? undefined }))
+    arr.map((text) => ({ text }))
   return [header.map((tx) => ({ text: tx })), ...table.slice(2).map(parseRow).map(toCells)]
 }
 
 function auditSheet(doc: DocumentRecord): XlCell[][] {
-  const headings = extractHeadings(doc.markdown)
+  const headings = extractHeadings(doc.markdown, lang)
   const c = (text: string): XlCell => ({ text })
   return [
-    [c('Metric'), c('Value'), c('Source'), c('Updated')],
-    [c('Title'), c(doc.title), c(getSiteLabel(doc.sourceUrl)), c(doc.fetchedAt)],
-    [c('Words'), c(String(doc.summary.words)), c('Markdown'), c('auto')],
-    [c('Headings'), c(String(doc.summary.headings)), c('Markdown'), c('auto')],
-    [c('Links'), c(String(doc.summary.links)), c('Markdown'), c('auto')],
-    [c('Images'), c(String(doc.summary.images)), c('Markdown'), c('auto')],
-    ...headings.slice(0, 12).map((h, i) => [c(`Section ${i + 1}`), c(h), c('Heading'), c('')]),
+    [c(lang === 'zh' ? '指标' : 'Metric'), c(lang === 'zh' ? '数值' : 'Value'), c(lang === 'zh' ? '来源' : 'Source'), c(lang === 'zh' ? '更新时间' : 'Updated')],
+    [c(lang === 'zh' ? '标题' : 'Title'), c(doc.title), c(getSiteLabel(doc.sourceUrl)), c(doc.fetchedAt)],
+    [c(lang === 'zh' ? '字数' : 'Words'), c(String(doc.summary.words)), c('Markdown'), c(lang === 'zh' ? '自动' : 'auto')],
+    [c(lang === 'zh' ? '标题数' : 'Headings'), c(String(doc.summary.headings)), c('Markdown'), c(lang === 'zh' ? '自动' : 'auto')],
+    [c(lang === 'zh' ? '链接数' : 'Links'), c(String(doc.summary.links)), c('Markdown'), c(lang === 'zh' ? '自动' : 'auto')],
+    [c(lang === 'zh' ? '图片数' : 'Images'), c(String(doc.summary.images)), c('Markdown'), c(lang === 'zh' ? '自动' : 'auto')],
+    ...headings.slice(0, 12).map((h, i) => [c(lang === 'zh' ? `第 ${i + 1} 节` : `Section ${i + 1}`), c(h), c(lang === 'zh' ? '标题' : 'Heading'), c('')]),
   ]
 }
 
-// Sheet tabs are real: Summary/Raw/Links/Images each render a different grid,
-// and the Links/Images sheets have clickable URL cells for continuous browsing.
+// Sheet tabs show Summary/Raw/Links/Images as non-navigating text grids.
 function buildSheets(doc: DocumentRecord): { name: string; rows: XlCell[][] }[] {
   const links = extractLinks(doc.markdown, doc.sourceUrl)
   const images = extractImages(doc.markdown, doc.sourceUrl)
   const summary = markdownTableToSheet(doc.markdown) ?? auditSheet(doc)
   const linkRows: XlCell[][] = [
-    [{ text: '#' }, { text: 'Link text' }, { text: 'URL' }],
+    [{ text: '#' }, { text: lang === 'zh' ? '链接文本' : 'Link text' }, { text: 'URL' }],
     ...links.map((l, i) => [
       { text: String(i + 1) },
-      { text: l.text, href: l.href },
-      { text: l.href, href: l.href },
+      { text: l.text },
+      { text: l.href },
     ]),
   ]
   const imageRows: XlCell[][] = [
-    [{ text: '#' }, { text: 'Alt' }, { text: 'URL' }],
+    [{ text: '#' }, { text: lang === 'zh' ? '替代文本' : 'Alt' }, { text: 'URL' }],
     ...images.map((im, i) => [
       { text: String(i + 1) },
-      { text: im.alt || 'Image' },
-      { text: im.src, href: im.src },
+      { text: im.alt || (lang === 'zh' ? '图片' : 'Image') },
+      { text: im.src },
     ]),
   ]
   const rawRows: XlCell[][] = [
-    [{ text: 'Source (markdown)' }],
+    [{ text: lang === 'zh' ? '源文（markdown）' : 'Source (markdown)' }],
     ...articleBody(doc)
       .split('\n')
       .slice(0, 400)
       .map((line) => [{ text: line }]),
   ]
   return [
-    { name: 'Summary', rows: summary },
-    { name: 'Raw', rows: rawRows },
-    { name: 'Links', rows: linkRows.length > 1 ? linkRows : [[{ text: 'No links' }]] },
-    { name: 'Images', rows: imageRows.length > 1 ? imageRows : [[{ text: 'No images' }]] },
+    { name: lang === 'zh' ? '摘要' : 'Summary', rows: summary },
+    { name: lang === 'zh' ? '原文' : 'Raw', rows: rawRows },
+    { name: lang === 'zh' ? '链接' : 'Links', rows: linkRows.length > 1 ? linkRows : [[{ text: lang === 'zh' ? '暂无链接' : 'No links' }]] },
+    { name: lang === 'zh' ? '图片' : 'Images', rows: imageRows.length > 1 ? imageRows : [[{ text: lang === 'zh' ? '暂无图片' : 'No images' }]] },
   ]
 }
 
@@ -139,13 +137,7 @@ function XlSheet({ rows }: { rows: XlCell[][] }) {
               const cell = row[ci]
               return (
                 <td key={ci} className={r === 0 ? 'xl-cell xl-head' : 'xl-cell'}>
-                  {cell?.href ? (
-                    <a href={cell.href} rel="noopener noreferrer">
-                      {cell.text}
-                    </a>
-                  ) : (
-                    cell?.text || ''
-                  )}
+                  {cell?.text || ''}
                 </td>
               )
             })}
@@ -167,18 +159,18 @@ function ExcelHomeRibbon() {
         <div className="ms-row">
           <button type="button" className="ms-btn-lg">
             <ClipboardPaste24Regular />
-            <span>Paste</span>
+            <span>{lang === 'zh' ? '粘贴' : 'Paste'}</span>
           </button>
           <div className="ms-col">
             <button type="button" className="ms-btn-row">
-              <Cut20Regular /> Cut
+              <Cut20Regular /> {lang === 'zh' ? '剪切' : 'Cut'}
             </button>
             <button type="button" className="ms-btn-row">
-              <Copy20Regular /> Copy
+              <Copy20Regular /> {lang === 'zh' ? '复制' : 'Copy'}
             </button>
           </div>
         </div>
-        <div className="ms-group-name">Clipboard</div>
+        <div className="ms-group-name">{lang === 'zh' ? '剪贴板' : 'Clipboard'}</div>
       </div>
 
       <div className="ms-group">
@@ -208,7 +200,7 @@ function ExcelHomeRibbon() {
             </button>
           </div>
         </div>
-        <div className="ms-group-name">Font</div>
+        <div className="ms-group-name">{lang === 'zh' ? '字体' : 'Font'}</div>
       </div>
 
       <div className="ms-group">
@@ -226,20 +218,20 @@ function ExcelHomeRibbon() {
           </div>
           <div className="ms-row">
             <button type="button" className="ms-btn-row">
-              <TextWrapOff20Regular /> Wrap
+              <TextWrapOff20Regular /> {lang === 'zh' ? '自动换行' : 'Wrap'}
             </button>
             <button type="button" className="ms-btn-row">
-              <TableCellsMerge20Regular /> Merge
+              <TableCellsMerge20Regular /> {lang === 'zh' ? '合并' : 'Merge'}
             </button>
           </div>
         </div>
-        <div className="ms-group-name">Alignment</div>
+        <div className="ms-group-name">{lang === 'zh' ? '对齐方式' : 'Alignment'}</div>
       </div>
 
       <div className="ms-group">
         <div className="ms-col">
           <div className="ms-row ms-font-row">
-            <span className="ms-fontbox ms-numbox">General ▾</span>
+            <span className="ms-fontbox ms-numbox">{lang === 'zh' ? '常规 ▾' : 'General ▾'}</span>
           </div>
           <div className="ms-row">
             <button type="button" className="ms-btn-sm">
@@ -253,37 +245,37 @@ function ExcelHomeRibbon() {
             </button>
           </div>
         </div>
-        <div className="ms-group-name">Number</div>
+        <div className="ms-group-name">{lang === 'zh' ? '数字' : 'Number'}</div>
       </div>
 
       <div className="ms-group">
         <div className="ms-row">
           <button type="button" className="ms-btn-row">
-            <TableInsertRow20Regular /> Insert
+            <TableInsertRow20Regular /> {lang === 'zh' ? '插入' : 'Insert'}
           </button>
           <button type="button" className="ms-btn-row">
-            <TableDeleteRow20Regular /> Delete
+            <TableDeleteRow20Regular /> {lang === 'zh' ? '删除' : 'Delete'}
           </button>
           <button type="button" className="ms-btn-row">
-            <Table20Regular /> Format
+            <Table20Regular /> {lang === 'zh' ? '格式' : 'Format'}
           </button>
         </div>
-        <div className="ms-group-name">Cells</div>
+        <div className="ms-group-name">{lang === 'zh' ? '单元格' : 'Cells'}</div>
       </div>
 
       <div className="ms-group">
         <div className="ms-row">
           <button type="button" className="ms-btn-row">
-            <Autosum20Regular /> AutoSum
+            <Autosum20Regular /> {lang === 'zh' ? '自动求和' : 'AutoSum'}
           </button>
           <button type="button" className="ms-btn-row">
-            <ArrowSortDownLines20Regular /> Sort
+            <ArrowSortDownLines20Regular /> {lang === 'zh' ? '排序' : 'Sort'}
           </button>
           <button type="button" className="ms-btn-row">
-            <Search20Regular /> Find
+            <Search20Regular /> {lang === 'zh' ? '查找' : 'Find'}
           </button>
         </div>
-        <div className="ms-group-name">Editing</div>
+        <div className="ms-group-name">{lang === 'zh' ? '编辑' : 'Editing'}</div>
       </div>
     </div>
   )
@@ -536,9 +528,9 @@ function BudgetChart({ rev, ebitda }: { rev: number[]; ebitda: number[] }) {
     .join(' ')
   const ticks = [0, Math.round(maxV / 2), Math.round(maxV)]
   return (
-    <svg className="xl-chart-svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Revenue vs EBITDA">
+    <svg className="xl-chart-svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={lang === 'zh' ? '收入与息税折旧摊销前利润' : 'Revenue vs EBITDA'}>
       <text className="xl-chart-title" x={padL} y={16}>
-        {lang === 'zh' ? '收入与 EBITDA（千元）' : 'Revenue vs. EBITDA ($000s)'}
+        {lang === 'zh' ? '收入与息税折旧摊销前利润（千美元）' : 'Revenue vs. EBITDA ($000s)'}
       </text>
       {ticks.map((tk) => (
         <g key={tk}>
@@ -656,8 +648,10 @@ function buildHeadcountSheet(): BCell[][] {
 // The boss sheet speaks the office's language — every label (never a formula
 // or number) is swapped through this dictionary when the UI runs in Chinese.
 const ZH_BUDGET: Record<string, string> = {
-  'FY2026 Operating Budget — Q3 Reforecast   ($000s)': 'FY2026 经营预算 — Q3 重估（千元）',
+  'FY2026 Operating Budget — Q3 Reforecast   ($000s)': '2026 财年经营预算 — 第三季度重估（千美元）',
   'Line item': '项目',
+  FY2026: '2026 财年', Q1: '第一季度', Q2: '第二季度', Q3: '第三季度', Q4: '第四季度',
+  EBITDA: '息税折旧摊销前利润',
   Jan: '1月', Feb: '2月', Mar: '3月', Apr: '4月', May: '5月', Jun: '6月',
   Jul: '7月', Aug: '8月', Sep: '9月', Oct: '10月', Nov: '11月', Dec: '12月',
   Revenue: '收入',
@@ -679,10 +673,10 @@ const ZH_BUDGET: Record<string, string> = {
   '  Travel & Events': '  差旅与活动',
   '  Software & Tools': '  软件与工具',
   'Total OpEx': '费用合计',
-  'EBITDA Margin %': 'EBITDA 利润率 %',
+  'EBITDA Margin %': '息税折旧摊销前利润率 %',
   'Headcount (EOP)': '期末人数',
   'Cash Balance': '现金余额',
-  'Planning Assumptions — FY2026': '经营假设 — FY2026',
+  'Planning Assumptions — FY2026': '经营假设 — 2026 财年',
   Driver: '驱动项', Basis: '口径', Value: '数值', Owner: '负责人',
   'Subscription MoM growth': '订阅收入月增速',
   'Services MoM growth': '服务收入月增速',
@@ -691,9 +685,9 @@ const ZH_BUDGET: Record<string, string> = {
   'Blended ARPA ($)': '平均客单价（$）',
   'Cloud cost / $ revenue': '云成本 / 收入占比',
   'Fully-loaded cost / head ($)': '人均全成本（$）',
-  'Starting cash ($000s)': '期初现金（千元）',
+  'Starting cash ($000s)': '期初现金（千美元）',
   'FX rate (EUR/USD)': '汇率（EUR/USD）',
-  'Net new ARR': '净新增 ARR', Utilization: '人员利用率', Blended: '综合口径',
+  'Net new ARR': '净新增年度经常性收入', Utilization: '人员利用率', Blended: '综合口径',
   Cohort: '同期群', 'Price book': '价格表', 'Committed use': '承诺用量',
   'Comp band': '薪酬档位', Bank: '银行对账', 'Hedged 60%': '已对冲 60%',
   RevOps: '收入运营', Delivery: '交付', Finance: '财务', CS: '客户成功',
@@ -706,7 +700,7 @@ const ZH_BUDGET: Record<string, string> = {
 }
 
 const ZH_SHEETS: Record<string, string> = {
-  'FY26 P&L': 'FY26 损益',
+  'FY26 P&L': '2026 财年损益',
   Assumptions: '经营假设',
   Headcount: '人员编制',
 }
@@ -831,13 +825,13 @@ export function ExcelBudgetSkin({ doc }: { doc: DocumentRecord }) {
         <span className="excel-add">＋</span>
       </div>
       <div className="ms-status excel-status">
-        <span>Ready</span>
+        <span>{lang === 'zh' ? '就绪' : 'Ready'}</span>
         <span>
-          Sum={' '}
+          {lang === 'zh' ? '求和=' : 'Sum='}{' '}
           {selCell?.v !== undefined ? Math.round(selCell.v).toLocaleString('en-US') : '0'}
         </span>
         <span className="ms-status-right">
-          Average · Count: {grid.reduce((n, row) => n + row.filter((c) => c.v !== undefined).length, 0)}
+          {lang === 'zh' ? '平均值 · 计数：' : 'Average · Count: '}{grid.reduce((n, row) => n + row.filter((c) => c.v !== undefined).length, 0)}
         </span>
         <span>100%</span>
       </div>
@@ -848,6 +842,7 @@ export function ExcelBudgetSkin({ doc }: { doc: DocumentRecord }) {
 export function ExcelSkin({ doc }: { doc: DocumentRecord }) {
   const sheets = useMemo(() => buildSheets(doc), [doc])
   const [active, setActive] = useState(0)
+  const [split, setSplit] = useState(57.5)
   const site = getSiteLabel(doc.sourceUrl)
   const rows = sheets[active].rows
   return (
@@ -860,10 +855,31 @@ export function ExcelSkin({ doc }: { doc: DocumentRecord }) {
         <span className="fx">fx</span>
         <span className="formula-value">={`SOURCE("${site}")`}</span>
       </div>
-      <div className="excel-body">
+      <div className="excel-body excel-body-resizable" style={{ '--excel-grid-width': `${split}fr`, '--excel-read-width': `${100 - split}fr` } as CSSProperties}>
         <div className="excel-grid-host">
           <XlSheet rows={rows} />
         </div>
+        <div className="excel-resizer" role="separator" aria-orientation="vertical" tabIndex={0}
+          aria-label={lang === 'zh' ? '调整表格与正文宽度' : 'Resize spreadsheet and reading panes'}
+          aria-valuemin={20} aria-valuemax={80} aria-valuenow={Math.round(split)}
+          onPointerDown={(event) => {
+            if (event.button !== 0) return
+            event.preventDefault()
+            event.currentTarget.setPointerCapture(event.pointerId)
+          }}
+          onPointerMove={(event) => {
+            if (!event.currentTarget.hasPointerCapture(event.pointerId)) return
+            const bounds = event.currentTarget.parentElement!.getBoundingClientRect()
+            setSplit(Math.max(20, Math.min(80, (event.clientX - bounds.left - 3) / (bounds.width - 6) * 100)))
+          }}
+          onPointerUp={(event) => {
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+          }}
+          onKeyDown={(event) => {
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+            event.preventDefault()
+            setSplit((value) => event.key === 'Home' ? 20 : event.key === 'End' ? 80 : Math.max(20, Math.min(80, value + (event.key === 'ArrowLeft' ? -2 : 2))))
+          }} />
         <aside className="excel-read markdown-body">
           <SkinSwitcher className="excel-switch" />
           <div className="excel-read-head">
@@ -886,8 +902,8 @@ export function ExcelSkin({ doc }: { doc: DocumentRecord }) {
         <span className="excel-add">＋</span>
       </div>
       <div className="ms-status excel-status">
-        <span>Ready</span>
-        <span className="ms-status-right">Count: {Math.max(0, rows.length - 1)}</span>
+        <span>{lang === 'zh' ? '就绪' : 'Ready'}</span>
+        <span className="ms-status-right">{lang === 'zh' ? '计数：' : 'Count: '}{Math.max(0, rows.length - 1)}</span>
         <span>100%</span>
       </div>
     </div>

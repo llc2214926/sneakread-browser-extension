@@ -2,20 +2,16 @@
   "name": "sneakread",
   "private": true,
   "version": "0.1.0",
-  "description": "Read the web at your desk, disguised as VS Code / Word / Google Docs / Excel / Outlook.",
+  "description": "Self-contained single-HTML reader and Chromium extension with fifteen desktop disguises and local text import.",
   "license": "MIT",
-  "homepage": "https://sneakread.com",
   "repository": {
     "type": "git",
     "url": "https://github.com/SneakRead/sneakread.git"
   },
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build && vite build --ssr src/entry-ssr.tsx --outDir dist-ssr && node scripts/prerender.mjs",
-    "build:client": "tsc -b && vite build",
-    "lint": "oxlint",
-    "preview": "vite preview"
+    "build": "tsc -b && node build-single.mjs",
+    "lint": "oxlint src scripts build-single.mjs browser-extension/service-worker.js"
   },
   "dependencies": {
     "@fluentui/react-components": "^9.74.3",

@@ -1,12 +1,13 @@
 // Claude Code skin — a full-screen macOS terminal window running the Claude
 // Code CLI. The article is disguised as the assistant's answer to a "read this
 // URL" request: welcome banner, a user prompt, a Fetch() tool call, then the
-// full text streamed back. Chrome stays English (the real CLI is English-only).
+// full text streamed back. Chrome follows the selected interface language.
 import './style.css'
 import type { DocumentRecord } from '../../core/types'
 import type { SkinDefinition } from '../types'
 import { articleBody, getSiteLabel } from '../../core/content'
 import { MarkdownContent, SkinSwitcher } from '../shared'
+import { lang } from '../../i18n'
 
 // Claude's spark mark: a white starburst on the clay-orange rounded tile.
 // Rays alternate long/short with a slight taper so it reads as the brand's
@@ -66,6 +67,7 @@ function termSize() {
 
 function Surface({ doc }: { doc: DocumentRecord }) {
   const body = articleBody(doc)
+  const zh = lang === 'zh'
   const host = getSiteLabel(doc.sourceUrl)
   const project = (doc.projectName || 'workspace').toLowerCase()
   const words = doc.summary.words
@@ -99,16 +101,16 @@ function Surface({ doc }: { doc: DocumentRecord }) {
 
           <div className="cc-welcome">
             <div className="cc-welcome-head">
-              <span className="cc-spark">✻</span> Welcome to <b>Claude Code</b>!
+              <span className="cc-spark">✻</span> {zh ? '欢迎使用 ' : 'Welcome to '}<b>Claude Code</b>!
             </div>
-            <div className="cc-welcome-sub">/help for help, /status for your current setup</div>
+            <div className="cc-welcome-sub">{zh ? '/help 查看帮助，/status 查看当前设置' : '/help for help, /status for your current setup'}</div>
             <div className="cc-welcome-sub">
-              cwd: <span className="cc-welcome-cwd">~/projects/{project}</span>
+              {zh ? '当前目录: ' : 'cwd: '}<span className="cc-welcome-cwd">~/projects/{project}</span>
             </div>
           </div>
 
           <div className="cc-user">
-            <span className="cc-user-caret">&gt;</span> read {host} and give me the full text
+            <span className="cc-user-caret">&gt;</span> {zh ? `阅读 ${host} 并提供全文` : `read ${host} and give me the full text`}
           </div>
 
           <div className="cc-tool">
@@ -120,14 +122,14 @@ function Surface({ doc }: { doc: DocumentRecord }) {
             <div className="cc-tool-result">
               <span className="cc-elbow">⎿</span>
               <span>
-                200 OK · {words.toLocaleString('en-US')} words · {links.toLocaleString('en-US')}{' '}
-                links
+                200 OK · {words.toLocaleString('en-US')} {zh ? '字' : 'words'} · {links.toLocaleString('en-US')}{' '}
+                {zh ? '个链接' : 'links'}
               </span>
             </div>
           </div>
 
           <div className="cc-lead">
-            <span className="cc-dot">⏺</span> Here&rsquo;s the full article:
+            <span className="cc-dot">⏺</span> {zh ? '以下是文章全文：' : 'Here’s the full article:'}
           </div>
 
           <article className="cc-article">
@@ -138,7 +140,7 @@ function Surface({ doc }: { doc: DocumentRecord }) {
           </article>
 
           <div className="cc-lead cc-done">
-            <span className="cc-dot">⏺</span> Done. Anything else you&rsquo;d like me to dig into?
+            <span className="cc-dot">⏺</span> {zh ? '已完成。还有什么想让我深入了解的吗？' : 'Done. Anything else you’d like me to dig into?'}
           </div>
         </div>
       </div>
@@ -148,15 +150,15 @@ function Surface({ doc }: { doc: DocumentRecord }) {
         <div className="cc-inputbox">
           <span className="cc-prompt">&gt;</span>
           <span className="cc-cursor" aria-hidden="true" />
-          <span className="cc-placeholder">Try &quot;summarize the key points&quot;</span>
+          <span className="cc-placeholder">{zh ? '试试“总结要点”' : 'Try "summarize the key points"'}</span>
         </div>
         <div className="cc-statusline">
           {/* "? for shortcuts" is the terminal's natural help affordance — a
               second, semantically obvious mount for the real menu. */}
           <span data-appmenu="file" className="cc-shortcuts">
-            ? for shortcuts
+            {zh ? '? 查看快捷键' : '? for shortcuts'}
           </span>
-          <span className="cc-status-right">claude-fable-5 · {contextLeft}% context left</span>
+          <span className="cc-status-right">claude-fable-5 · {contextLeft}% {zh ? '剩余上下文' : 'context left'}</span>
         </div>
       </footer>
     </div>

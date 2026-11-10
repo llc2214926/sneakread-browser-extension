@@ -211,7 +211,7 @@ export function DingTalkSkin({ doc }: { doc: DocumentRecord }) {
             <Search size={14} />
             <span>{t.search}</span>
           </div>
-          <button type="button" className="dt-add" aria-label="New">
+          <button type="button" className="dt-add" aria-label={zh ? '新建' : 'New'}>
             <Plus size={17} />
           </button>
         </div>

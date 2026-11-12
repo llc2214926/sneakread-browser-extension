@@ -1,8 +1,8 @@
 {
   "name": "sneakread",
   "private": true,
-  "version": "0.1.0",
-  "description": "Self-contained single-HTML reader and Chromium extension with fifteen desktop disguises and local text import.",
+  "version": "0.1.1",
+  "description": "Self-contained single-HTML reader and Chromium extension with fifteen desktop disguises and pasted-text reading.",
   "license": "MIT",
   "repository": {
     "type": "git",

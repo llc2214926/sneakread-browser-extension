@@ -73,7 +73,7 @@ const vscodeEggsZh: Record<string, string> = {
 因为"我在看文档"这句话，应该更经常是真的。
 
 ## 怎么用
-1. 打开允许跨域的网站，或粘贴正文、导入本地文件。
+1. 打开允许跨域的网站，或粘贴正文。
 2. 挑一个伪装——VS Code、Word、飞书、Notion、钉钉、Excel……
 3. 有人走过来的瞬间，按 \`Esc\`。
 
@@ -109,7 +109,7 @@ Excel。没人敢打断一个对着表格皱眉的人。`,
 直觉不错。这里是没人告诉你的：
 
 - **Esc** —— 一键切成预算表，再按一次切回来。
-- **Cmd/Ctrl + K** —— 打开命令面板，导入本地内容。
+- **Cmd/Ctrl + K** —— 打开命令面板，打开网址或粘贴正文。
 - 预览中的链接在阅读器内打开，图片点击后加载；源码页仍显示 Markdown 原文。
 - **文件**菜单是真的：语言、外观、失焦自动隐藏，都在里面。
 
@@ -130,7 +130,7 @@ Read local text at your desk, disguised as the tools you already have open.
 Because "I'm reading the docs" should be true more often.
 
 ## How
-1. Open a CORS-enabled website, paste text, or import a local file.
+1. Open a CORS-enabled website or paste text.
 2. Pick a disguise — VS Code, Word, Google Docs, Notion, Slack, Lark, Excel, Outlook.
 3. Press \`Esc\` the instant someone walks by.
 
@@ -168,7 +168,7 @@ Excel. Nobody interrupts someone frowning at a spreadsheet.`,
 Nice instinct. Here's what nobody tells you:
 
 - **Esc** — panic button. Instant budget spreadsheet.
-- **Cmd/Ctrl + K** — open commands and import local content.
+- **Cmd/Ctrl + K** — open commands to open a URL or paste text.
 - Preview links open inside the reader; images load when clicked. Source view remains literal Markdown.
 - The **File** menu is real: language, disguise, boss auto-hide — all in there.
 

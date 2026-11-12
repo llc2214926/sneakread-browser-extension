@@ -1,7 +1,7 @@
 import { safeHttpUrl } from './content'
 
 function literalMarkdown(text: string): string {
-  return text.replace(/[!-/:-@\[-`{-~]/g, '\\$&')
+  return text.replace(/[!-/:-@[-`{-~]/g, '\\$&')
 }
 
 function fencedText(text: string): string {
@@ -89,7 +89,7 @@ export function parseLocalContent(text: string, fileName: string): { title: stri
   if (!extension || !['txt', 'md', 'markdown', 'html', 'htm'].includes(extension)) {
     throw new Error('不支持的文件类型，请选择 TXT、MD 或 HTML 文件。')
   }
-  if (!text.trim()) throw new Error('内容为空，请选择有正文的文件或粘贴内容。')
+  if (!text.trim()) throw new Error('内容为空，请粘贴正文或读取有正文的网页。')
   const fileTitle = fileName.replace(/^.*[\\/]/, '').replace(/\.[^.]+$/, '').trim() || '本地文档'
   if (extension === 'txt') {
     const markdown = text.split(/\r\n?|\n/).map((line) => line.trim()

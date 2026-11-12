@@ -23,15 +23,14 @@ const extensionPage = window.location.protocol === 'chrome-extension:'
 const label = {
   title: zh ? '单文件阅读器，联网读网页' : 'One file. Read the web.',
   intro: extensionPage
-    ? (zh ? '界面资源随扩展安装；输入网址后扩展会在后台打开目标网站，等待页面脚本渲染，再在本机提取正文，不调用第三方抓取服务。会沿用当前浏览器的登录状态。也可粘贴正文或导入本地文件。' : 'App resources are packaged with the extension. Enter a URL and it will open the target in a background tab, wait for its scripts to render, then extract text locally without third-party reader services. Your current browser login state is used. Pasting text and importing files also work.')
-    : (zh ? '界面资源全部内嵌；输入网址后直接连接目标网站，在本机提取正文，不调用第三方抓取服务。遇到跨域拦截时，可安装随源码提供的 Chromium 扩展，由扩展代取、仍在本机解析。也可粘贴正文或导入本地文件。' : 'All app resources are embedded. Connect directly to a website and extract text locally, without third-party reader services. If CORS blocks the page, install the optional Chromium extension included with the source; it fetches the page and keeps parsing local. Pasting text and importing files also work.'),
+    ? (zh ? '界面资源随扩展安装；输入网址后扩展会在后台打开目标网站，等待页面脚本渲染，再在本机提取正文，不调用第三方抓取服务。会沿用当前浏览器的登录状态。也可粘贴正文。' : 'App resources are packaged with the extension. Enter a URL and it will open the target in a background tab, wait for its scripts to render, then extract text locally without third-party reader services. Your current browser login state is used. Pasting text also works.')
+    : (zh ? '界面资源全部内嵌；输入网址后直接连接目标网站，在本机提取正文，不调用第三方抓取服务。遇到跨域拦截时，可安装随源码提供的 Chromium 扩展，由扩展代取、仍在本机解析。也可粘贴正文。' : 'All app resources are embedded. Connect directly to a website and extract text locally, without third-party reader services. If CORS blocks the page, install the optional Chromium extension included with the source; it fetches the page and keeps parsing local. Pasting text also works.'),
   open: zh ? '打开网址' : 'Open URL',
   url: zh ? '网页地址' : 'Website URL',
   webNote: extensionPage
     ? (zh ? '扩展在后台打开网页并等待脚本渲染，沿用当前浏览器登录状态后提取页面 DOM，不调用第三方中转。点击正文链接继续在当前扩展阅读页打开；图片默认不加载，点击图片按钮后加载。验证码、付费墙或需要交互的内容仍可能无法读取。' : 'The extension renders pages in a background tab using your browser session, without a third-party proxy. Article links open inside this reader. Images load only when clicked. CAPTCHA, paywalls, or interactive content may still block reading.')
     : (zh ? '独立 HTML 读取网页受 CORS 限制；可安装 browser-extension 中的扩展并从扩展图标打开阅读器。点击链接在阅读器内继续阅读；图片默认不加载，点击后加载。' : 'Standalone HTML requests require CORS. For other sites, install browser-extension and open it from its toolbar icon. Links stay in the reader; images load only when clicked.'),
   paste: zh ? '粘贴正文' : 'Paste text',
-  import: zh ? '导入本地文件' : 'Import local file',
   read: zh ? '开始阅读' : 'Start reading',
   text: zh ? '正文（支持 Markdown）' : 'Text (Markdown supported)',
   name: zh ? '标题（可选）' : 'Title (optional)',
@@ -40,8 +39,8 @@ const label = {
   home: zh ? '返回阅读入口' : 'Back to reader home',
   recent: zh ? '最近阅读' : 'Recent documents',
   commands: zh ? '搜索命令或本地文档…' : 'Search commands or local documents…',
-  tip: zh ? '文件菜单 / Ctrl 或 ⌘ K：打开网址、导入与切换外观；Esc：预算表遮盖，再按恢复。' : 'File menu / Ctrl or ⌘ K: open URLs, import and switch apps. Esc: budget sheet; press again to restore.',
-  note: zh ? '文件按 UTF-8 读取；HTML 仅提取内容，不执行脚本。链接在阅读器内打开，图片需点击后加载。本地记录不是备份。' : 'Files use UTF-8. Imported HTML scripts never run. Links stay inside the reader; images load only when clicked. Local history is not a backup.',
+  tip: zh ? '文件菜单 / Ctrl 或 ⌘ K：打开网址、粘贴正文与切换外观；Esc：预算表遮盖，再按恢复。' : 'File menu / Ctrl or ⌘ K: open URLs, paste text and switch apps. Esc: budget sheet; press again to restore.',
+  note: zh ? '链接在阅读器内打开，图片需点击后加载。本地记录不是备份。' : 'Links stay inside the reader; images load only when clicked. Local history is not a backup.',
   busy: zh ? '正在读取内容…' : 'Reading content…',
 }
 
@@ -127,9 +126,9 @@ function CommandPalette({ commands, onClose }: { commands: Command[]; onClose: (
   </Dialog>
 }
 
-function ImportForm({ text, title, setText, setTitle, busy, onSubmit, onFile, error }: {
+function ImportForm({ text, title, setText, setTitle, busy, onSubmit, error }: {
   text: string; title: string; setText: (value: string) => void; setTitle: (value: string) => void
-  busy: boolean; onSubmit: (event: FormEvent) => void; onFile: (file: File) => void; error: string
+  busy: boolean; onSubmit: (event: FormEvent) => void; error: string
 }) {
   return <form className="offline-import" onSubmit={onSubmit}>
     <label>{label.name}<input value={title} onChange={(e) => setTitle(e.target.value)} /></label>
@@ -137,10 +136,6 @@ function ImportForm({ text, title, setText, setTitle, busy, onSubmit, onFile, er
       placeholder={zh ? '把要阅读的文章粘贴到这里…' : 'Paste the article you want to read…'} /></label>
     <div className="offline-import-actions">
       <button type="submit" disabled={busy}>{label.read}</button>
-      <label className="offline-file">{label.import}<input type="file" aria-label={label.import}
-        accept=".txt,.md,.markdown,.html,.htm" disabled={busy} onChange={(e) => {
-          const file = e.target.files?.[0]; e.target.value = ''; if (file) onFile(file)
-        }} /></label>
     </div>
     {busy && <p role="status">{label.busy}</p>}
     {error && <p className="welcome-error" role="alert">{error}</p>}
@@ -184,7 +179,7 @@ function App() {
   useEffect(() => {
     // Never silently drop older documents to fit a storage quota.
     if (!storageSet(storageKey, JSON.stringify(records))) {
-      setNotice(zh ? '本地记录保存失败（存储已满或被禁用）。本次仍可阅读，关闭前请保留原文件或正文。' : 'History could not be saved (storage full or disabled). Keep your original file or text before closing.')
+      setNotice(zh ? '本地记录保存失败（存储已满或被禁用）。本次仍可阅读，关闭前请保留原文。' : 'History could not be saved (storage full or disabled). Keep your original text before closing.')
     }
   }, [records])
   useEffect(() => {
@@ -252,19 +247,6 @@ function App() {
       setText(''); setTitle('')
     } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)) }
   }
-  const importFile = async (file: File) => {
-    if (importing.current) return
-    importing.current = true; setBusy(true); setError('')
-    const selectedSkin = activeDoc?.skin || homeSkin
-    try {
-      // Fatal decoding avoids silently corrupting legacy-encoded files.
-      const raw = new TextDecoder('utf-8', { fatal: true }).decode(await file.arrayBuffer())
-      addDocument(raw, file.name, selectedSkin)
-    } catch (cause) {
-      setError(cause instanceof TypeError ? (zh ? '文件不是有效 UTF-8，请先另存为 UTF-8 再导入。' : 'Save the file as UTF-8 before importing.') :
-        cause instanceof Error ? cause.message : String(cause))
-    } finally { importing.current = false; setBusy(false) }
-  }
   const openUrl = async (input: string) => {
     if (importing.current) return
     let url: string
@@ -298,10 +280,10 @@ function App() {
   const copySource = async () => {
     if (!activeDoc) return
     try { await navigator.clipboard.writeText(activeDoc.raw) }
-    catch { setNotice(zh ? '浏览器禁止复制，请在导入前保留原文。' : 'Clipboard unavailable. Keep the original file.') }
+    catch { setNotice(zh ? '浏览器禁止复制，请保留原文。' : 'Clipboard unavailable. Keep the original text.') }
   }
   const commands: Command[] = [
-    { id: 'import', title: `${label.open} / ${label.paste} / ${label.import}`, run: openImport },
+    { id: 'import', title: `${label.open} / ${label.paste}`, run: openImport },
     { id: 'home', title: label.home, run: () => { setHomeSkin(activeDoc?.skin || homeSkin); setPanic(false); navigate(null) } },
     ...skins.map((s) => ({ id: `skin-${s.id}`, title: t('openAs', { app: skinLabel(s, lang) }), run: () => changeSkin(s.id) })),
     ...(activeDoc ? [{ id: 'copy', title: t('cmdCopy'), run: copySource }] : []),
@@ -346,7 +328,7 @@ function App() {
       <p className="offline-note">{label.webNote}</p>
     </form>
     <ImportForm text={text} title={title} setText={setText} setTitle={setTitle}
-      busy={busy} onSubmit={submit} onFile={importFile} error={error} />
+      busy={busy} onSubmit={submit} error={error} />
   </>
   const welcome = <div className="welcome offline-welcome">
     <div className="welcome-hero"><h1><span className="welcome-brand">{zh ? '摸鱼 · 本地单文件版' : 'SneakRead · Single file'}</span>
@@ -392,7 +374,7 @@ function App() {
         <button type="button" className="menu-item" onClick={() => { closePanels(); setAboutOpen(true) }}>{t('mHelp')}</button>
       </div></>}
     {paletteOpen && <CommandPalette commands={commands} onClose={() => setPaletteOpen(false)} />}
-    {importOpen && <Dialog title={`${label.open} / ${label.import}`} onClose={() => setImportOpen(false)}>{importForm}</Dialog>}
+    {importOpen && <Dialog title={`${label.open} / ${label.paste}`} onClose={() => setImportOpen(false)}>{importForm}</Dialog>}
     {aboutOpen && <Dialog title={label.title} onClose={() => setAboutOpen(false)}><p>{label.intro}</p><p>{label.webNote}</p><p>{label.tip}</p><p>{label.note}</p></Dialog>}
   </div>
 }

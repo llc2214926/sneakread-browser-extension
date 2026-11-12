@@ -76,6 +76,6 @@ export async function readWebsite(input: string, signal: AbortSignal): Promise<R
     || 'utf-8'
   let raw: string
   try { raw = new TextDecoder(charset, { fatal: true }).decode(bytes) }
-  catch { throw new Error(`无法按 ${charset} 解码网页，请保存为 UTF-8 文件后导入。`) }
+  catch { throw new Error(`无法按 ${charset} 解码网页，请复制网页正文后粘贴阅读。`) }
   return parseFetchedContent(raw, contentType, response.url || url)
 }

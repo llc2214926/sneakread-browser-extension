@@ -10,7 +10,7 @@ src/
   core/
     types.ts        # DocumentRecord, SkinId
     content.ts      # pure transforms: articleBody, emailBody, clockLabel, …
-    local-import.ts # local UTF-8 text/Markdown/HTML import; no network
+    local-import.ts # local parsing of pasted text and fetched text/Markdown/HTML; no network
     alias.ts        # the user's display name, worn by every disguise
   skins/
     types.ts        # the SkinDefinition interface (Surface + optional Logo)

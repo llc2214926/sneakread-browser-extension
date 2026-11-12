@@ -1009,6 +1009,7 @@
 }
 
 .vsc-editor-welcome {
+  grid-column: 2 / -1;
   grid-template-rows: 35px minmax(0, 1fr);
 }
 
@@ -5905,6 +5906,9 @@ html:lang(zh) .ms-ribbon-tabs > span {
   }
 
   /* Home welcome + loading skeleton */
+  .vsc-editor-welcome {
+    grid-column: 1 / -1;
+  }
   .welcome {
     padding: 24px 12px;
   }
@@ -5945,11 +5949,11 @@ html:lang(zh) .ms-ribbon-tabs > span {
   cursor: pointer;
 }
 
-/* Local import controls inherit the surrounding disguise; no remote assets. */
+/* Reader input controls inherit the surrounding disguise; no remote assets. */
 .offline-import { display: grid; gap: 14px; margin: 24px 0; text-align: start; color: #333; }
 .vsc-editor .offline-import { color: #ccc; }
 .offline-import > label { display: grid; gap: 6px; font-size: 14px; }
-.offline-import input:not([type="file"]), .offline-import textarea {
+.offline-import input, .offline-import textarea {
   width: 100%; min-width: 0; border: 1px solid #c8ccd1; border-radius: 5px;
   padding: 10px 12px; font: 14px/1.6 var(--sans); color: #242424; background: #fff;
 }
@@ -5957,8 +5961,6 @@ html:lang(zh) .ms-ribbon-tabs > span {
 .offline-import-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: start; }
 .offline-import-actions > button { border: 0; border-radius: 5px; padding: 11px 22px; color: #fff; background: #2b579a; cursor: pointer; }
 .offline-import-actions > button:disabled { opacity: .6; cursor: wait; }
-.offline-file { display: grid; gap: 6px; font-size: 13px; }
-.offline-file input { max-width: 100%; width: 270px; font: inherit; }
 .offline-note { font-size: 12px; line-height: 1.7; opacity: .75; }
 .offline-dialog {
   position: fixed; inset: 0; margin: auto; width: min(680px, calc(100vw - 28px)); max-height: 86vh;

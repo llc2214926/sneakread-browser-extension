@@ -4,9 +4,8 @@ import { Search } from 'lucide-react'
 import { t, lang, isRtl, langKey, LANG_NAMES, LANG_NAMES_ZH, ALL_LANGS, type Lang } from './i18n'
 import { DEFAULT_SKIN_ID } from './config/defaults'
 import type { DocumentRecord, SkinId } from './core/types'
-import { storageKey, panicDocumentId } from './core/types'
-import { summarizeMarkdown } from './core/content'
-import { parseLocalContent } from './core/local-import'
+import { panicDocumentId } from './core/types'
+import { headingId, samePageFragment, summarizeMarkdown } from './core/content'
 import { normalizeWebUrl, readWebsite } from './core/web-read'
 import { getAlias, setAlias } from './core/alias'
 import { WordFrame } from './skins/shared'
@@ -23,24 +22,19 @@ const extensionPage = window.location.protocol === 'chrome-extension:'
 const label = {
   title: zh ? '单文件阅读器，联网读网页' : 'One file. Read the web.',
   intro: extensionPage
-    ? (zh ? '界面资源随扩展安装；输入网址后扩展会在后台打开目标网站，等待页面脚本渲染，再在本机提取正文，不调用第三方抓取服务。会沿用当前浏览器的登录状态。也可粘贴正文。' : 'App resources are packaged with the extension. Enter a URL and it will open the target in a background tab, wait for its scripts to render, then extract text locally without third-party reader services. Your current browser login state is used. Pasting text also works.')
-    : (zh ? '界面资源全部内嵌；输入网址后直接连接目标网站，在本机提取正文，不调用第三方抓取服务。遇到跨域拦截时，可安装随源码提供的 Chromium 扩展，由扩展代取、仍在本机解析。也可粘贴正文。' : 'All app resources are embedded. Connect directly to a website and extract text locally, without third-party reader services. If CORS blocks the page, install the optional Chromium extension included with the source; it fetches the page and keeps parsing local. Pasting text also works.'),
+    ? (zh ? '界面资源随扩展安装；输入网址后扩展会在后台打开目标网站，等待页面脚本渲染，再在本机提取正文，不调用第三方抓取服务。会沿用当前浏览器的登录状态。' : 'App resources are packaged with the extension. Enter a URL and it will open the target in a background tab, wait for its scripts to render, then extract text locally without third-party reader services. Your current browser login state is used.')
+    : (zh ? '界面资源全部内嵌；输入网址后直接连接目标网站，在本机提取正文，不调用第三方抓取服务。遇到跨域拦截时，可安装随源码提供的 Chromium 扩展，由扩展代取、仍在本机解析。' : 'All app resources are embedded. Connect directly to a website and extract text locally, without third-party reader services. If CORS blocks the page, install the optional Chromium extension included with the source; it fetches the page and keeps parsing local.'),
   open: zh ? '打开网址' : 'Open URL',
   url: zh ? '网页地址' : 'Website URL',
   webNote: extensionPage
     ? (zh ? '扩展在后台打开网页并等待脚本渲染，沿用当前浏览器登录状态后提取页面 DOM，不调用第三方中转。点击正文链接继续在当前扩展阅读页打开；图片默认不加载，点击图片按钮后加载。验证码、付费墙或需要交互的内容仍可能无法读取。' : 'The extension renders pages in a background tab using your browser session, without a third-party proxy. Article links open inside this reader. Images load only when clicked. CAPTCHA, paywalls, or interactive content may still block reading.')
     : (zh ? '独立 HTML 读取网页受 CORS 限制；可安装 browser-extension 中的扩展并从扩展图标打开阅读器。点击链接在阅读器内继续阅读；图片默认不加载，点击后加载。' : 'Standalone HTML requests require CORS. For other sites, install browser-extension and open it from its toolbar icon. Links stay in the reader; images load only when clicked.'),
-  paste: zh ? '粘贴正文' : 'Paste text',
-  read: zh ? '开始阅读' : 'Start reading',
-  text: zh ? '正文（支持 Markdown）' : 'Text (Markdown supported)',
-  name: zh ? '标题（可选）' : 'Title (optional)',
   close: zh ? '关闭' : 'Close',
-  local: zh ? '本地文档' : 'Local document',
+  document: zh ? '网页文档' : 'Web document',
   home: zh ? '返回阅读入口' : 'Back to reader home',
-  recent: zh ? '最近阅读' : 'Recent documents',
-  commands: zh ? '搜索命令或本地文档…' : 'Search commands or local documents…',
-  tip: zh ? '文件菜单 / Ctrl 或 ⌘ K：打开网址、粘贴正文与切换外观；Esc：预算表遮盖，再按恢复。' : 'File menu / Ctrl or ⌘ K: open URLs, paste text and switch apps. Esc: budget sheet; press again to restore.',
-  note: zh ? '链接在阅读器内打开，图片需点击后加载。本地记录不是备份。' : 'Links stay inside the reader; images load only when clicked. Local history is not a backup.',
+  commands: zh ? '搜索命令…' : 'Search commands…',
+  tip: zh ? '文件菜单 / Ctrl 或 ⌘ K：打开网址与切换外观；Esc：预算表遮盖，再按恢复。' : 'File menu / Ctrl or ⌘ K: open URLs and switch apps. Esc: budget sheet; press again to restore.',
+  note: zh ? '链接在阅读器内打开，图片需点击后加载。正文仅保留在当前页面会话中，刷新或关闭页面后清除。' : 'Links stay inside the reader; images load only when clicked. Articles stay in this page session and are cleared on reload or close.',
   busy: zh ? '正在读取内容…' : 'Reading content…',
 }
 
@@ -50,24 +44,12 @@ function storageGet(key: string) {
 function storageSet(key: string, value: string) {
   try { localStorage.setItem(key, value); return true } catch { return false }
 }
+function storageRemove(key: string) {
+  try { localStorage.removeItem(key); return true } catch { return false }
+}
 function makeFileName(title: string, skin: SkinId) {
   const clean = title.replace(/[\\/:*?"<>|#]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60)
-  return `${clean || label.local}.${skinById(skin).extension}`
-}
-function loadDocuments(): DocumentRecord[] {
-  try {
-    const saved: unknown = JSON.parse(storageGet(storageKey) || '[]')
-    if (!Array.isArray(saved)) return []
-    return saved.filter((doc): doc is DocumentRecord => doc && typeof doc === 'object' &&
-      typeof doc.id === 'string' && typeof doc.title === 'string' &&
-      typeof doc.markdown === 'string' && typeof doc.sourceUrl === 'string').map((doc) => {
-      const skin = skins.some((s) => s.id === doc.skin) ? doc.skin : DEFAULT_SKIN_ID
-      return { ...doc, skin, raw: typeof doc.raw === 'string' ? doc.raw : doc.markdown,
-        fileName: makeFileName(doc.title, skin), summary: summarizeMarkdown(doc.markdown),
-        projectName: doc.projectName || label.local, pageKind: doc.pageKind || 'article',
-        sizeBytes: doc.sizeBytes || new Blob([doc.markdown]).size, openCount: doc.openCount || 1 }
-    })
-  } catch { return [] }
+  return `${clean || label.document}.${skinById(skin).extension}`
 }
 function routeId() {
   const path = window.location.hash.slice(1).split('?')[0].replace(/^\//, '')
@@ -77,7 +59,7 @@ function documentFor(title: string, markdown: string, skin: SkinId, id: string, 
   const now = new Date().toISOString()
   return { id, title, markdown, raw, skin, sourceUrl: `local:${id}`, summary: summarizeMarkdown(markdown),
     fileName: makeFileName(title, skin), fetchedAt: now, lastOpenedAt: now, lastSyncedAt: now,
-    projectName: label.local, pageKind: 'article', sizeBytes: new Blob([raw]).size, openCount: 1 }
+    projectName: label.document, pageKind: 'article', sizeBytes: new Blob([raw]).size, openCount: 1 }
 }
 function setFavicon(skin: SkinId) {
   const meta = skinById(skin)
@@ -126,25 +108,8 @@ function CommandPalette({ commands, onClose }: { commands: Command[]; onClose: (
   </Dialog>
 }
 
-function ImportForm({ text, title, setText, setTitle, busy, onSubmit, error }: {
-  text: string; title: string; setText: (value: string) => void; setTitle: (value: string) => void
-  busy: boolean; onSubmit: (event: FormEvent) => void; error: string
-}) {
-  return <form className="offline-import" onSubmit={onSubmit}>
-    <label>{label.name}<input value={title} onChange={(e) => setTitle(e.target.value)} /></label>
-    <label>{label.text}<textarea value={text} onChange={(e) => setText(e.target.value)} rows={7} spellCheck={false}
-      placeholder={zh ? '把要阅读的文章粘贴到这里…' : 'Paste the article you want to read…'} /></label>
-    <div className="offline-import-actions">
-      <button type="submit" disabled={busy}>{label.read}</button>
-    </div>
-    {busy && <p role="status">{label.busy}</p>}
-    {error && <p className="welcome-error" role="alert">{error}</p>}
-    <p className="offline-note">{label.note}</p>
-  </form>
-}
-
 function App() {
-  const [records, setRecords] = useState(loadDocuments)
+  const [records, setRecords] = useState<DocumentRecord[]>([])
   const [activeId, setActiveId] = useState<string | null>(() => routeId() || null)
   const [homeSkin, setHomeSkin] = useState<SkinId>(() => {
     const saved = storageGet('sneakread-offline-skin')
@@ -153,19 +118,15 @@ function App() {
   const [panic, setPanic] = useState(false)
   const [bossMode, setBossMode] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
-  const [importOpen, setImportOpen] = useState(false)
+  const [urlOpen, setUrlOpen] = useState(false)
   const [aboutOpen, setAboutOpen] = useState(false)
   const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number } | null>(null)
   const [languageOpen, setLanguageOpen] = useState(false)
-  const [text, setText] = useState('')
-  const [title, setTitle] = useState('')
-  const [error, setError] = useState('')
   const [urlInput, setUrlInput] = useState('')
   const [webError, setWebError] = useState('')
   const request = useRef<AbortController | null>(null)
   const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState(false)
-  const importing = useRef(false)
   const [, bumpAlias] = useState(0)
   const activeDoc = records.find((doc) => doc.id === activeId) || null
   const skin: SkinId = panic ? 'excel' : activeDoc?.skin || homeSkin
@@ -177,11 +138,8 @@ function App() {
   const shown = panic ? panicDoc : activeDoc || homeDoc
 
   useEffect(() => {
-    // Never silently drop older documents to fit a storage quota.
-    if (!storageSet(storageKey, JSON.stringify(records))) {
-      setNotice(zh ? '本地记录保存失败（存储已满或被禁用）。本次仍可阅读，关闭前请保留原文。' : 'History could not be saved (storage full or disabled). Keep your original text before closing.')
-    }
-  }, [records])
+    storageRemove('sneakread-documents-v1')
+  }, [])
   useEffect(() => {
     document.documentElement.lang = lang
     document.title = `${shown.fileName} - ${skinAppName(skinById(skin), lang)}`
@@ -190,14 +148,16 @@ function App() {
   useEffect(() => {
     const onHistory = () => {
       setActiveId(routeId() || null); setPanic(false); setMenuAnchor(null)
-      setPaletteOpen(false); setImportOpen(false); setAboutOpen(false)
+      request.current?.abort(new Error(zh ? '已取消读取。' : 'Reading cancelled.'))
+      setPaletteOpen(false); setUrlOpen(false); setAboutOpen(false)
     }
     window.addEventListener('popstate', onHistory)
     window.addEventListener('hashchange', onHistory)
     return () => { window.removeEventListener('popstate', onHistory); window.removeEventListener('hashchange', onHistory) }
   }, [])
 
-  const closePanels = () => { setMenuAnchor(null); setPaletteOpen(false); setImportOpen(false); setAboutOpen(false) }
+  useEffect(() => () => request.current?.abort(), [])
+  const closePanels = () => { setMenuAnchor(null); setPaletteOpen(false); setUrlOpen(false); setAboutOpen(false) }
   const togglePanic = () => { closePanels(); setPanic((value) => !value) }
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -222,50 +182,31 @@ function App() {
     const hash = id ? `#/${encodeURIComponent(id)}` : '#/'
     if (window.location.hash !== hash) window.history.pushState(null, '', hash)
   }
-  const openRecord = (doc: DocumentRecord) => {
-    closePanels(); setPanic(false); navigate(doc.id)
-    setRecords((current) => [{ ...doc, lastOpenedAt: new Date().toISOString(), openCount: doc.openCount + 1 },
-      ...current.filter((item) => item.id !== doc.id)])
-  }
   const changeSkin = (next: SkinId) => {
     setPanic(false); setHomeSkin(next); storageSet('sneakread-offline-skin', next)
     if (activeDoc) setRecords((current) => current.map((doc) => doc.id === activeDoc.id ?
       { ...doc, skin: next, fileName: makeFileName(doc.title, next) } : doc))
   }
-  const openImport = () => { closePanels(); setPanic(false); setError(''); setWebError(''); setImportOpen(true) }
-  const addDocument = (raw: string, filename: string, chosenSkin: SkinId, customTitle = '') => {
-    const parsed = parseLocalContent(raw, filename)
-    const doc = documentFor(customTitle.trim() || parsed.title, parsed.markdown, chosenSkin, crypto.randomUUID(), raw)
-    setRecords((current) => [doc, ...current]); navigate(doc.id); setImportOpen(false); setError('')
-    return doc
-  }
-  const submit = (event: FormEvent) => {
-    event.preventDefault()
-    if (importing.current) return
-    try {
-      addDocument(text, zh ? '粘贴内容.md' : 'Pasted text.md', activeDoc?.skin || homeSkin, title)
-      setText(''); setTitle('')
-    } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)) }
-  }
+  const openUrlDialog = () => { closePanels(); setPanic(false); setWebError(''); setUrlOpen(true) }
   const openUrl = async (input: string) => {
-    if (importing.current) return
+    if (request.current) return
     let url: string
     try { url = normalizeWebUrl(input) }
     catch (cause) { setWebError(cause instanceof Error ? cause.message : String(cause)); return }
-    importing.current = true; setBusy(true); setWebError(''); setUrlInput(url)
+    setBusy(true); setWebError(''); setUrlInput(url)
     const selectedSkin = activeDoc?.skin || homeSkin
     const controller = new AbortController()
     request.current = controller
-    const timer = window.setTimeout(() => controller.abort(new Error(zh ? '读取超时（20 秒），请检查网络或目标网站。' : 'Reading timed out after 20 seconds.')), 20_000)
+    const timer = window.setTimeout(() => controller.abort(new Error(zh ? '读取超时，请检查网络或目标网站。' : 'Reading timed out. Check your connection or the target website.')), 22_000)
     try {
       const parsed = await readWebsite(url, controller.signal)
       const existing = records.find((doc) => doc.sourceUrl === parsed.sourceUrl)
       const doc = { ...documentFor(parsed.title, parsed.markdown, selectedSkin, existing?.id || crypto.randomUUID(), parsed.raw),
         ...parsed, projectName: new URL(parsed.sourceUrl).hostname }
       setRecords((current) => [doc, ...current.filter((item) => item.id !== doc.id)])
-      navigate(doc.id); setImportOpen(false)
+      navigate(doc.id); setUrlOpen(false)
     } catch (cause) { setWebError(cause instanceof Error ? cause.message : String(cause)) }
-    finally { window.clearTimeout(timer); request.current = null; importing.current = false; setBusy(false) }
+    finally { window.clearTimeout(timer); request.current = null; setBusy(false) }
   }
   const openWebsite = (event: FormEvent) => {
     event.preventDefault()
@@ -273,7 +214,7 @@ function App() {
   }
   const setLanguage = (code: Lang) => {
     if (code === lang) return
-    if (text.trim() && !window.confirm(zh ? '切换语言会重载页面。尚未导入的草稿不会保存，继续？' : 'Changing language reloads the page. Unimported text will be lost. Continue?')) return
+    if (activeDoc && !window.confirm(zh ? '切换语言会刷新页面并清除当前会话的文章，继续？' : 'Changing language reloads the page and clears articles from this session. Continue?')) return
     if (!storageSet(langKey, code)) { setNotice(zh ? '无法保存语言设置。' : 'Could not save language setting.'); return }
     window.location.reload()
   }
@@ -283,7 +224,7 @@ function App() {
     catch { setNotice(zh ? '浏览器禁止复制，请保留原文。' : 'Clipboard unavailable. Keep the original text.') }
   }
   const commands: Command[] = [
-    { id: 'import', title: `${label.open} / ${label.paste}`, run: openImport },
+    { id: 'open-url', title: label.open, run: openUrlDialog },
     { id: 'home', title: label.home, run: () => { setHomeSkin(activeDoc?.skin || homeSkin); setPanic(false); navigate(null) } },
     ...skins.map((s) => ({ id: `skin-${s.id}`, title: t('openAs', { app: skinLabel(s, lang) }), run: () => changeSkin(s.id) })),
     ...(activeDoc ? [{ id: 'copy', title: t('cmdCopy'), run: copySource }] : []),
@@ -293,7 +234,6 @@ function App() {
     } },
     { id: 'boss', title: bossMode ? t('bossOn') : t('bossOff'), run: () => setBossMode((value) => !value) },
     { id: 'panic', title: t('cmdPanic'), hint: 'Esc', run: togglePanic },
-    ...records.map((doc) => ({ id: `doc-${doc.id}`, title: doc.fileName, hint: label.recent, run: () => openRecord(doc) })),
   ]
   const onStageClick = (event: ReactMouseEvent) => {
     const target = event.target as Element
@@ -315,10 +255,17 @@ function App() {
     event.preventDefault()
     if (target.closest('button')) return
     event.stopPropagation()
-    if (link.hasAttribute('data-reader-link') && event.button !== 2) void openUrl(link.href)
+    if (!link.hasAttribute('data-reader-link') || event.button === 2) return
+    const fragment = activeDoc ? samePageFragment(link.href, activeDoc.sourceUrl) : null
+    if (activeDoc && fragment !== null) {
+      const anchor = fragment ? event.currentTarget.querySelector<HTMLElement>(`#${CSS.escape(fragment)}`) : null
+      const top = !fragment || fragment === headingId(activeDoc.title)
+      const destination = anchor || (top ? event.currentTarget.querySelector('.skin-switch') : null)
+      if (destination) destination.scrollIntoView({ block: 'start' })
+      else void openUrl(link.href)
+    } else void openUrl(link.href)
   }
-  const importForm = <>
-    <form className="offline-import" onSubmit={openWebsite}>
+  const urlForm = <form className="offline-import" onSubmit={openWebsite}>
       <label>{label.url}<input type="text" inputMode="url" autoComplete="off" spellCheck={false}
         value={urlInput} onChange={(event) => setUrlInput(event.target.value)} placeholder="https://…" /></label>
       <div className="offline-import-actions"><button type="submit" disabled={busy}>{label.open}</button>
@@ -327,22 +274,15 @@ function App() {
       {webError && <p className="welcome-error" role="alert">{webError}</p>}
       <p className="offline-note">{label.webNote}</p>
     </form>
-    <ImportForm text={text} title={title} setText={setText} setTitle={setTitle}
-      busy={busy} onSubmit={submit} error={error} />
-  </>
   const welcome = <div className="welcome offline-welcome">
     <div className="welcome-hero"><h1><span className="welcome-brand">{zh ? '摸鱼 · 本地单文件版' : 'SneakRead · Single file'}</span>
       <span className="welcome-tagline">{label.title}</span></h1><p className="welcome-sub">{label.intro}</p>
-      {importForm}<div className="welcome-tip">{label.tip}</div>
+      {urlForm}<div className="welcome-tip">{label.tip}</div>
       <div className="welcome-apps"><h2 className="welcome-apps-title">{t('homeOpenAs')}</h2><div className="welcome-apps-grid">
         {skins.map((s) => <button type="button" key={s.id} className={`welcome-app${homeSkin === s.id ? ' is-active' : ''}`}
           onClick={() => changeSkin(s.id)}><SkinBrandLogo id={s.id} size={32} /><span className="welcome-app-name">{skinLabel(s, lang)}</span></button>)}
       </div></div>
     </div>
-    {!!records.length && <section className="welcome-section"><h2>{label.recent}</h2><div className="welcome-recents">
-      {records.map((doc) => <button type="button" className="welcome-recent" key={doc.id} onClick={() => openRecord(doc)}>
-        <span>{doc.fileName}</span><small>{label.local}</small></button>)}
-    </div></section>}
     <footer className="welcome-footer">SneakRead · MIT · {zh ? '本地单文件版' : 'Local single-file edition'}</footer>
   </div>
   return <div className={`stage skin-${skin}${!activeDoc && !panic ? ' home-stage' : ''}`}
@@ -351,10 +291,10 @@ function App() {
       {!panic && !activeDoc && homeSkin === 'word' ? <WordFrame fileName={homeDoc.fileName} statusWords={homeDoc.summary.words}>
         <article className="paper welcome-paper markdown-body">{welcome}</article></WordFrame> :
         !panic && !activeDoc && homeSkin === 'vscode' ? <div className="vsc"><VscMenuBar /><div className="vsc-body"><ActivityBar />
-          <section className="vsc-editor vsc-editor-welcome"><div className="vsc-tabs"><span className="vsc-tab is-active">{label.local}</span></div>
-            <div className="vsc-editor-scroll">{welcome}</div></section></div><div className="vsc-status">UTF-8</div></div> : <SkinSurface doc={shown} />}
+          <section className="vsc-editor vsc-editor-welcome"><div className="vsc-tabs"><span className="vsc-tab is-active">{label.document}</span></div>
+            <div className="vsc-editor-scroll">{welcome}</div></section></div><div className="vsc-status">UTF-8</div></div> : <SkinSurface key={shown.id} doc={shown} />}
     </SkinControlsProvider>
-    {activeDoc && !panic && !importOpen && (busy || webError) && <div className="offline-notice" role={webError ? 'alert' : 'status'}>
+    {activeDoc && !panic && !urlOpen && (busy || webError) && <div className="offline-notice" role={webError ? 'alert' : 'status'}>
       {busy ? label.busy : webError}
       {busy ? <button type="button" onClick={() => request.current?.abort(new Error(zh ? '已取消读取。' : 'Reading cancelled.'))}>{zh ? '取消读取' : 'Cancel'}</button>
         : <button type="button" onClick={() => setWebError('')} aria-label={label.close}>×</button>}
@@ -363,7 +303,7 @@ function App() {
     {menuAnchor && <><div className="menu-scrim" onClick={() => setMenuAnchor(null)} />
       <div className="app-menu" style={{ left: menuAnchor.x, top: menuAnchor.y }} dir={isRtl ? 'rtl' : undefined}>
         <button type="button" className="menu-item" onClick={() => { closePanels(); setPaletteOpen(true) }}>{label.commands}<span className="menu-kbd">⌘K</span></button>
-        {commands.filter((c) => !c.id.startsWith('doc-')).map((c) => <button type="button" key={c.id} className="menu-item"
+        {commands.map((c) => <button type="button" key={c.id} className="menu-item"
           onClick={() => { setMenuAnchor(null); c.run() }}><span>{c.title}</span><span>{c.hint}</span></button>)}
         <div className="menu-sep" /><button type="button" className="menu-item" onClick={() => setLanguageOpen((value) => !value)}>{t('mLanguage')} {languageOpen ? '▾' : '▸'}</button>
         {languageOpen && ALL_LANGS.map((code) => <button type="button" key={code} className="menu-item menu-sub" onClick={() => setLanguage(code)}>
@@ -374,7 +314,7 @@ function App() {
         <button type="button" className="menu-item" onClick={() => { closePanels(); setAboutOpen(true) }}>{t('mHelp')}</button>
       </div></>}
     {paletteOpen && <CommandPalette commands={commands} onClose={() => setPaletteOpen(false)} />}
-    {importOpen && <Dialog title={`${label.open} / ${label.paste}`} onClose={() => setImportOpen(false)}>{importForm}</Dialog>}
+    {urlOpen && <Dialog title={label.open} onClose={() => setUrlOpen(false)}>{urlForm}</Dialog>}
     {aboutOpen && <Dialog title={label.title} onClose={() => setAboutOpen(false)}><p>{label.intro}</p><p>{label.webNote}</p><p>{label.tip}</p><p>{label.note}</p></Dialog>}
   </div>
 }

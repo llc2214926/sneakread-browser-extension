@@ -15,41 +15,56 @@ export function normalizeWebUrl(input: string): string {
 }
 
 type RenderedPageReply = { ok: boolean; sourceUrl?: string; html?: string; error?: string }
+type ReaderPort = {
+  postMessage: (message: { url: string }) => void
+  disconnect: () => void
+  onMessage: { addListener: (listener: (reply: RenderedPageReply) => void) => void; removeListener: (listener: (reply: RenderedPageReply) => void) => void }
+  onDisconnect: { addListener: (listener: () => void) => void; removeListener: (listener: () => void) => void }
+}
 
 function readRenderedPage(url: string, signal: AbortSignal): Promise<RenderedPageReply> {
+  if (signal.aborted) return Promise.reject(signal.reason)
   if (window.location.protocol !== 'chrome-extension:') return Promise.reject(new Error('渲染读取仅支持从 SneakRead 扩展页面调用。'))
   const runtime = (globalThis as typeof globalThis & { chrome?: { runtime?: {
-    sendMessage: (message: unknown, callback: (reply?: RenderedPageReply) => void) => void
+    connect: (options: { name: string }) => ReaderPort
     lastError?: { message?: string }
   } } }).chrome?.runtime
   if (!runtime) return Promise.reject(new Error('未找到 SneakRead 扩展运行时。'))
   return new Promise((resolvePromise, rejectPromise) => {
-    let timer = 0
+    const port = runtime.connect({ name: 'read-rendered-page' })
     const cleanup = () => {
-      window.clearTimeout(timer)
       signal.removeEventListener('abort', onAbort)
+      port.onMessage.removeListener(onMessage)
+      port.onDisconnect.removeListener(onDisconnect)
+      port.disconnect()
     }
     const onAbort = () => { cleanup(); rejectPromise(signal.reason) }
+    const onMessage = (reply: RenderedPageReply) => { cleanup(); resolvePromise(reply) }
+    const onDisconnect = () => {
+      const error = runtime.lastError?.message || '扩展读取连接已关闭，请重新打开阅读器后重试。'
+      cleanup(); rejectPromise(new Error(error))
+    }
+    port.onMessage.addListener(onMessage)
+    port.onDisconnect.addListener(onDisconnect)
     signal.addEventListener('abort', onAbort, { once: true })
-    timer = window.setTimeout(() => { cleanup(); rejectPromise(new Error('网页渲染超时。')) }, 18_000)
-    runtime.sendMessage({ type: 'read-rendered-page', url }, (reply) => {
-      const error = runtime.lastError?.message
-      cleanup()
-      if (signal.aborted) rejectPromise(signal.reason)
-      else if (error) rejectPromise(new Error(error))
-      else if (!reply) rejectPromise(new Error('扩展没有返回网页内容。'))
-      else resolvePromise(reply)
-    })
+    if (signal.aborted) onAbort()
+    else {
+      try { port.postMessage({ url }) }
+      catch (error) { cleanup(); rejectPromise(error) }
+    }
   })
 }
 
 function parseFetchedContent(raw: string, contentType: string, sourceUrl: string): ReaderDoc {
+  let source: URL
+  try { source = new URL(sourceUrl) }
+  catch { throw new Error('目标网站返回了无效的网页地址。') }
   const mime = contentType.split(';')[0].trim().toLowerCase()
   const extension = mime === 'text/html' || mime === 'application/xhtml+xml' ? 'html'
-    : mime === 'text/markdown' || (mime === 'text/plain' && /\.(md|markdown)$/i.test(new URL(sourceUrl).pathname)) ? 'md'
+    : mime === 'text/markdown' || (mime === 'text/plain' && /\.(md|markdown)$/i.test(source.pathname)) ? 'md'
       : mime === 'text/plain' ? 'txt' : null
   if (!extension) throw new Error(`暂不支持该网页的内容类型：${mime || '未声明'}。请使用 HTML、纯文本或 Markdown 页面。`)
-  const parsed = parseWebContent(raw, `${new URL(sourceUrl).hostname}.${extension}`, sourceUrl)
+  const parsed = parseWebContent(raw, `${source.hostname}.${extension}`, sourceUrl)
   return { ...parsed, raw, sourceUrl, fetchedAt: new Date().toISOString(), summary: summarizeMarkdown(parsed.markdown, sourceUrl) }
 }
 
@@ -58,7 +73,7 @@ export async function readWebsite(input: string, signal: AbortSignal): Promise<R
   if (window.location.protocol === 'chrome-extension:') {
     const rendered = await readRenderedPage(url, signal)
     if (!rendered.ok || !rendered.html) throw new Error(rendered.error || '网页未返回可读取内容。')
-    return parseFetchedContent(rendered.html, 'text/html', rendered.sourceUrl || url)
+    return parseFetchedContent(rendered.html, 'text/html', normalizeWebUrl(rendered.sourceUrl || url))
   }
   let response: Response
   try {
@@ -76,6 +91,6 @@ export async function readWebsite(input: string, signal: AbortSignal): Promise<R
     || 'utf-8'
   let raw: string
   try { raw = new TextDecoder(charset, { fatal: true }).decode(bytes) }
-  catch { throw new Error(`无法按 ${charset} 解码网页，请复制网页正文后粘贴阅读。`) }
+  catch { throw new Error(`无法按 ${charset} 解码网页，请检查目标网站的字符编码。`) }
   return parseFetchedContent(raw, contentType, response.url || url)
 }

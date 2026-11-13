@@ -67,13 +67,13 @@ export function ActivityBar() {
 const vscodeEggsZh: Record<string, string> = {
   'README.md': `# SneakRead · 摸鱼
 
-在工位上阅读本地文字，伪装成你本来就开着的那些软件。
+在工位上阅读网页，伪装成你本来就开着的那些软件。
 
 ## 为什么
 因为"我在看文档"这句话，应该更经常是真的。
 
 ## 怎么用
-1. 打开允许跨域的网站，或粘贴正文。
+1. 打开允许跨域的网站，或从扩展阅读器打开网址。
 2. 挑一个伪装——VS Code、Word、飞书、Notion、钉钉、Excel……
 3. 有人走过来的瞬间，按 \`Esc\`。
 
@@ -91,7 +91,7 @@ MIT 开源。现在，去读点什么吧。`,
 除非他有凑近读 Markdown 源码的爱好。他走近时按 **Esc**，屏幕瞬间变成 Q3 预算表。
 
 ## 会上传我的数据吗？
-没有后端。一切都在你的浏览器里。你的阅读清单只属于你。
+没有后端。网页正文只保留在当前标签页会话中，刷新或关闭后清除。
 
 ## 开大会用哪个伪装最好？
 Excel。没人敢打断一个对着表格皱眉的人。`,
@@ -109,7 +109,7 @@ Excel。没人敢打断一个对着表格皱眉的人。`,
 直觉不错。这里是没人告诉你的：
 
 - **Esc** —— 一键切成预算表，再按一次切回来。
-- **Cmd/Ctrl + K** —— 打开命令面板，打开网址或粘贴正文。
+- **Cmd/Ctrl + K** —— 打开命令面板，打开网址。
 - 预览中的链接在阅读器内打开，图片点击后加载；源码页仍显示 Markdown 原文。
 - **文件**菜单是真的：语言、外观、失焦自动隐藏，都在里面。
 
@@ -124,13 +124,13 @@ _https://github.com/SneakRead/sneakread_`,
 const vscodeEggsEn: Record<string, string> = {
   'README.md': `# SneakRead
 
-Read local text at your desk, disguised as the tools you already have open.
+Read web pages at your desk, disguised as the tools you already have open.
 
 ## Why
 Because "I'm reading the docs" should be true more often.
 
 ## How
-1. Open a CORS-enabled website or paste text.
+1. Open a CORS-enabled website, or open a URL from the extension reader.
 2. Pick a disguise — VS Code, Word, Google Docs, Notion, Slack, Lark, Excel, Outlook.
 3. Press \`Esc\` the instant someone walks by.
 
@@ -150,7 +150,7 @@ Only if they read Markdown source for fun. Press **Esc** if they approach and th
 screen flips to a Q3 budget spreadsheet instantly.
 
 ## Does it phone home?
-No backend. Everything runs in your browser. Your reading list stays yours.
+No backend. Articles stay in this tab's session and are cleared on reload or close.
 
 ## Best disguise for a big meeting?
 Excel. Nobody interrupts someone frowning at a spreadsheet.`,
@@ -168,7 +168,7 @@ Excel. Nobody interrupts someone frowning at a spreadsheet.`,
 Nice instinct. Here's what nobody tells you:
 
 - **Esc** — panic button. Instant budget spreadsheet.
-- **Cmd/Ctrl + K** — open commands to open a URL or paste text.
+- **Cmd/Ctrl + K** — open commands to open a URL.
 - Preview links open inside the reader; images load when clicked. Source view remains literal Markdown.
 - The **File** menu is real: language, disguise, boss auto-hide — all in there.
 

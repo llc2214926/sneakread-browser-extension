@@ -24,6 +24,22 @@ export function safeHttpUrl(value: string | null | undefined, baseUrl?: string) 
   }
 }
 
+export function headingId(text: string) {
+  return text.toLowerCase().trim().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '')
+}
+
+export function samePageFragment(href: string, sourceUrl: string): string | null {
+  try {
+    const target = new URL(href, sourceUrl)
+    const source = new URL(sourceUrl)
+    if (!target.href.includes('#')) return null
+    const fragment = target.hash.slice(1)
+    target.hash = ''; source.hash = ''
+    if (target.href !== source.href) return null
+    try { return decodeURIComponent(fragment) } catch { return fragment }
+  } catch { return null }
+}
+
 // Strip fenced code blocks so `# comment` / `## Heading` lines inside code aren't
 // harvested as real document headings.
 function stripCodeFences(markdown: string) {
@@ -81,15 +97,10 @@ export function normalizeTitleForCompare(value: string) {
 }
 
 export function removeDuplicateLeadingHeading(markdown: string, title: string) {
-  const lines = markdown.split('\n')
   const documentTitle = normalizeTitleForCompare(title)
-  if (!documentTitle) return markdown
-  const nextLines = lines.filter((line) => {
-    const match = line.match(/^#{1,2}\s+(.+)$/)
-    return !match || normalizeTitleForCompare(match[1]) !== documentTitle
-  })
-  if (nextLines.length === lines.length) return markdown
-  return nextLines.join('\n').replace(/^\n+/, '').trim()
+  const leading = markdown.match(/^(?:[ \t]*\r?\n)* {0,3}#{1,2}[ \t]+([^\r\n]*)(?:\r?\n|$)/)
+  if (!documentTitle || !leading || normalizeTitleForCompare(leading[1]) !== documentTitle) return markdown
+  return markdown.slice(leading[0].length).replace(/^(?:[ \t]*\r?\n)+/, '')
 }
 
 export function articleBody(doc: DocumentRecord) {

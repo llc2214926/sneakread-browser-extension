@@ -1,4 +1,4 @@
-import { safeHttpUrl } from './content'
+import { headingId, safeHttpUrl, samePageFragment } from './content'
 
 function literalMarkdown(text: string): string {
   return text.replace(/[!-/:-@[-`{-~]/g, '\\$&')
@@ -8,7 +8,7 @@ function fencedText(text: string): string {
   let size = 3
   for (const match of text.matchAll(/`+/g)) size = Math.max(size, match[0].length + 1)
   const fence = '`'.repeat(size)
-  return `${fence}\n${text}\n${fence}`
+  return `${fence}\n${text}${text.endsWith('\n') ? '' : '\n'}${fence}`
 }
 
 const blockTags: Record<string, true> = {
@@ -27,6 +27,8 @@ function htmlMarkdown(text: string, articleOnly = false, baseUrl?: string): { ti
   ).forEach((node) => node.remove())
   const title = (content.querySelector('title')?.textContent || content.querySelector('h1')?.textContent || '').replace(/\s+/g, ' ').trim()
   content.querySelectorAll('title').forEach((node) => node.remove())
+  const fragments = new Map(Array.from(content.querySelectorAll('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]'),
+    (heading) => [heading.id, headingId(heading.textContent || '')]))
 
   function children(node: Node): string {
     return Array.from(node.childNodes, render).join('')
@@ -40,7 +42,12 @@ function htmlMarkdown(text: string, articleOnly = false, baseUrl?: string): { ti
     if (tag === 'BR') return '  \n'
     if (tag === 'HR') return '\n\n---\n\n'
     if (tag === 'A') {
-      const absolute = safeHttpUrl(element.getAttribute('href'), documentUrl)
+      let absolute = safeHttpUrl(element.getAttribute('href'), documentUrl)
+      if (absolute && baseUrl) {
+        const fragment = samePageFragment(absolute, baseUrl)
+        const targetId = fragment === null ? undefined : fragments.get(fragment)
+        if (targetId) absolute = `${absolute.split('#')[0]}#${encodeURIComponent(targetId)}`
+      }
       const body = children(element).trim()
       return absolute && body ? `[${body}](${absolute.replace(/[()<>]/g, (char) => `%${char.charCodeAt(0).toString(16)}`)})` : body
     }
@@ -89,7 +96,7 @@ export function parseLocalContent(text: string, fileName: string): { title: stri
   if (!extension || !['txt', 'md', 'markdown', 'html', 'htm'].includes(extension)) {
     throw new Error('不支持的文件类型，请选择 TXT、MD 或 HTML 文件。')
   }
-  if (!text.trim()) throw new Error('内容为空，请粘贴正文或读取有正文的网页。')
+  if (!text.trim()) throw new Error('网页未包含可读取的正文。')
   const fileTitle = fileName.replace(/^.*[\\/]/, '').replace(/\.[^.]+$/, '').trim() || '本地文档'
   if (extension === 'txt') {
     const markdown = text.split(/\r\n?|\n/).map((line) => line.trim()

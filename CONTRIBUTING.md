@@ -10,7 +10,8 @@ src/
   core/
     types.ts        # DocumentRecord, SkinId
     content.ts      # pure transforms: articleBody, emailBody, clockLabel, …
-    local-import.ts # local parsing of pasted text and fetched text/Markdown/HTML; no network
+    local-import.ts # inert parsing of fetched text/Markdown/HTML; no network
+    web-read.ts     # URL validation, direct requests and extension connections
     alias.ts        # the user's display name, worn by every disguise
   skins/
     types.ts        # the SkinDefinition interface (Surface + optional Logo)
@@ -96,6 +97,7 @@ pnpm build    # type-check + ../sneakread.html; open the file after rebuilding
 The source `index.html` is a build-instructions page protected by the same strict
 CSP as the generated reader. There is no online development server, HMR, SSR,
 or SSG entry. Keep all runtime resources embedded and retain the build's offline
-assertions. Local browser records are a cache, not a backup.
+assertions. Articles stay in the current tab's memory and are cleared on reload;
+only language, display-name and appearance settings are stored locally.
 
 By contributing you agree your work is licensed under the [MIT License](LICENSE).

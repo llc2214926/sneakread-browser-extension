@@ -11,7 +11,7 @@ import { aliasInitial } from '../../core/alias'
 import { lang } from '../../i18n'
 import { skinLabel } from '../labels'
 import { useSkinControls } from '../controls'
-import { safeHttpUrl } from '../../core/content'
+import { headingId, safeHttpUrl } from '../../core/content'
 import {
   Save20Regular,
   ArrowUndo20Regular,
@@ -64,14 +64,6 @@ function nodeText(node: ReactNode): string {
   }
   return ''
 }
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .trim()
-    .replace(/[^\p{L}\p{N}]+/gu, '-')
-    .replace(/^-+|-+$/g, '')
-}
-
 function LazyImage({ src, alt }: { src?: string; alt?: string }) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle')
   const label = alt || (lang === 'zh' ? '图片' : 'Image')
@@ -86,7 +78,7 @@ export function MarkdownContent({ markdown, baseUrl }: { markdown: string; baseU
   const components = useMemo(() => {
     const heading = (Tag: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6') =>
       function Heading({ children }: { children?: ReactNode }) {
-        return <Tag id={slugify(nodeText(children)) || undefined}>{children}</Tag>
+        return <Tag id={headingId(nodeText(children)) || undefined}>{children}</Tag>
       }
     return {
       h1: heading('h1'),
@@ -144,50 +136,42 @@ export function SkinSwitcher({ className }: { className?: string }) {
   )
 }
 
-// Split an article body into a handful of coherent chunks for chat-style skins
-// (Slack), breaking at heading boundaries and merging the tail so a long piece
-// never explodes into dozens of tiny messages.
+// Keep source whitespace intact when splitting chat messages. Reference links and
+// footnotes share definitions across the document, so keep those articles whole.
 export function splitMarkdownForChat(
   markdown: string,
   opts?: { targetChars?: number; maxChunks?: number },
 ): string[] {
+  if (/(?:^|\n) {0,3}\[[^\]\n]+\]:/.test(markdown)) return [markdown]
   const targetChars = opts?.targetChars ?? 520
   const maxChunks = opts?.maxChunks ?? 14
-  const blocks = markdown
-    .split(/\n{2,}/)
-    .map((b) => b.trim())
-    .filter(Boolean)
+  const blocks = markdown.match(/[\s\S]+?(?:\r?\n(?:[ \t]*\r?\n)+|$)/g) || []
   const chunks: string[] = []
   let cur = ''
-  // Track the active fence's marker char AND length so we never split a fenced
-  // code block across messages. Per CommonMark, a fence closes only on the same
-  // char with length >= the opener — so a ```` (4) block can contain ``` lines.
   let fence: { ch: string; len: number } | null = null
   for (const block of blocks) {
     const startsInFence = fence !== null
     for (const line of block.split('\n')) {
-      const marker = line.match(/^\s*(`{3,}|~{3,})/)
+      const marker = line.match(/^ {0,3}(`{3,}|~{3,})([^\r\n]*)\r?$/)
       if (!marker) continue
       const ch = marker[1][0]
       const len = marker[1].length
-      if (fence === null) fence = { ch, len }
-      else if (fence.ch === ch && len >= fence.len) fence = null
+      if (fence === null) {
+        if (ch !== '`' || !marker[2].includes('`')) fence = { ch, len }
+      } else if (fence.ch === ch && len >= fence.len && !marker[2].trim()) fence = null
     }
-    const isHeading = !startsInFence && /^#{1,6}\s/.test(block)
-    // Recovery: a malformed (never-closed) fence would otherwise pull the whole
-    // rest of the article into one giant message — force a split past a hard cap.
+    const isHeading = /^ {0,3}#{1,6}[ \t]/.test(block)
     const recover = startsInFence && cur.length >= targetChars * 6
-    if (cur && (recover || (!startsInFence && (isHeading || cur.length >= targetChars)))) {
-      chunks.push(cur.trim())
+    if (cur && (recover || (!startsInFence && !/^(?: {4}|\t)/.test(block) && (isHeading || cur.length >= targetChars)))) {
+      chunks.push(cur)
       cur = ''
     }
-    cur = cur ? `${cur}\n\n${block}` : block
+    cur += block
   }
-  if (cur.trim()) chunks.push(cur.trim())
+  if (cur.trim()) chunks.push(cur)
   if (chunks.length <= maxChunks) return chunks
-  // Never drop content: fold the tail into the last message (rare with maxChunks=14).
   const head = chunks.slice(0, maxChunks - 1)
-  head.push(chunks.slice(maxChunks - 1).join('\n\n'))
+  head.push(chunks.slice(maxChunks - 1).join(''))
   return head
 }
 

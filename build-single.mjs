@@ -75,10 +75,10 @@ const csp = "default-src 'none'; connect-src https: http:; img-src data: blob: h
 const head = `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${csp}"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SneakRead — 本地单文件版</title>
 <!--
 来源：https://github.com/SneakRead/sneakread
-使用：双击本文件；输入网址直接联网读取，或粘贴文字；Esc 切换预算表。
+使用：双击本文件；输入网址联网读取；Esc 切换预算表。
 内嵌：全部应用脚本、样式、字体与图标在本文件中；不使用第三方抓取服务。网址阅读受目标网站 CORS、登录及脚本渲染限制。
 隐私：用户打开网址或点击正文链接时连接目标网站及其重定向；图片仅在点击加载按钮后请求原图片地址，不加载统计；正文在本机解析，不执行网页脚本。
-浏览器：需要支持 DecompressionStream 的现代浏览器；本地缓存随浏览器和文件路径变化，不是备份。
+浏览器：需要支持 DecompressionStream 的现代浏览器；正文仅保留在当前页面会话，刷新或关闭后清除。
 精简版：原有轻量代码视图替代 Monaco；使用系统字体；裁剪图标；gzip内嵌全部应用资源。
 中文：选择中文后，15种伪装界面使用中文；品牌、代码及文章原文保留，其他语言不变。
 第三方许可解压后保存在页面 #third-party-licenses 中。

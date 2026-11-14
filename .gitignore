@@ -26,3 +26,4 @@ dist-ssr
 
 # QA run artifacts (browser screenshots + result dumps)
 screenshots/qa-*
+/.pi

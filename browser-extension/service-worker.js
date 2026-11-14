@@ -1,7 +1,12 @@
-chrome.action.onClicked.addListener(() => {
+function readerPageUrl(pagePath, sourceUrl) {
+  const readerUrl = chrome.runtime.getURL(pagePath)
+  return /^https?:\/\//i.test(sourceUrl || '') ? `${readerUrl}?url=${encodeURIComponent(sourceUrl)}` : readerUrl
+}
+
+chrome.action.onClicked.addListener((tab) => {
   const workerPath = chrome.runtime.getManifest().background?.service_worker || ''
   const pagePath = workerPath.startsWith('browser-extension/') ? 'browser-extension/sneakread.html' : 'sneakread.html'
-  void chrome.tabs.create({ url: chrome.runtime.getURL(pagePath) })
+  void chrome.tabs.create({ url: readerPageUrl(pagePath, tab.url || '') })
 })
 
 function waitForLoad(tabId, signal) {
@@ -31,6 +36,41 @@ function waitForLoad(tabId, signal) {
   })
 }
 
+async function waitForReadableContent(tabId, signal) {
+  const deadline = Date.now() + 8_000
+  let previousLength = -1
+  let stable = 0
+  while (Date.now() < deadline) {
+    signal.throwIfAborted()
+    const [{ result }] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const semantic = document.querySelector('article,main,[role="main"]')
+        const text = (semantic?.innerText || document.body?.innerText || '').trim()
+        return { length: text.length, hasSemantic: Boolean(semantic), ready: document.readyState }
+      },
+    })
+    const length = result?.length || 0
+    stable = length === previousLength ? stable + 1 : 0
+    previousLength = length
+    if (length >= 80 && stable >= 2) return
+    await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        signal.removeEventListener('abort', onAbort)
+        resolve()
+      }, 250)
+      const onAbort = () => {
+        clearTimeout(timer)
+        signal.removeEventListener('abort', onAbort)
+        reject(signal.reason)
+      }
+      signal.addEventListener('abort', onAbort, { once: true })
+      if (signal.aborted) onAbort()
+    })
+  }
+  signal.throwIfAborted()
+}
+
 async function readRenderedPage(url, controller) {
   const { signal } = controller
   let tabId
@@ -43,8 +83,7 @@ async function readRenderedPage(url, controller) {
     }
     return closing
   }
-  // One deadline covers creation, loading, settling and extraction. The reader
-  // waits 22 seconds, leaving time to return this error and close the target tab.
+  // One deadline covers creation, loading, settling and extraction.
   const timer = setTimeout(() => controller.abort(new Error('网页读取超时。')), 20_000)
   signal.addEventListener('abort', closeTab, { once: true })
   try {
@@ -54,15 +93,7 @@ async function readRenderedPage(url, controller) {
     if (tabId === undefined) throw new Error('无法打开目标网页。')
     signal.throwIfAborted()
     await waitForLoad(tabId, signal)
-    await new Promise((resolve, reject) => {
-      const onAbort = () => { clearTimeout(settleTimer); reject(signal.reason) }
-      const settleTimer = setTimeout(() => {
-        signal.removeEventListener('abort', onAbort)
-        resolve()
-      }, 4_000)
-      signal.addEventListener('abort', onAbort, { once: true })
-      if (signal.aborted) onAbort()
-    })
+    await waitForReadableContent(tabId, signal)
     signal.throwIfAborted()
     const [{ result }] = await chrome.scripting.executeScript({
       target: { tabId },

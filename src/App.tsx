@@ -5,7 +5,7 @@ import { t, lang, isRtl, langKey, LANG_NAMES, LANG_NAMES_ZH, ALL_LANGS, type Lan
 import { DEFAULT_SKIN_ID } from './config/defaults'
 import type { DocumentRecord, SkinId } from './core/types'
 import { panicDocumentId } from './core/types'
-import { headingId, samePageFragment, summarizeMarkdown } from './core/content'
+import { headingId, getSiteLabel, samePageFragment, summarizeMarkdown } from './core/content'
 import { normalizeWebUrl, readWebsite } from './core/web-read'
 import { getAlias, setAlias } from './core/alias'
 import { WordFrame } from './skins/shared'
@@ -33,6 +33,10 @@ const label = {
   document: zh ? '网页文档' : 'Web document',
   home: zh ? '返回阅读入口' : 'Back to reader home',
   commands: zh ? '搜索命令…' : 'Search commands…',
+  sessions: zh ? '当前会话' : 'Open sessions',
+  sessionEmpty: zh ? '当前会话还没有打开的文章。' : 'No articles are open in this session.',
+  sessionRemove: zh ? '从会话移除' : 'Remove from session',
+  sessionCurrent: zh ? '当前文章' : 'Current article',
   tip: zh ? '文件菜单 / Ctrl 或 ⌘ K：打开网址与切换外观；Esc：预算表遮盖，再按恢复。' : 'File menu / Ctrl or ⌘ K: open URLs and switch apps. Esc: budget sheet; press again to restore.',
   note: zh ? '链接在阅读器内打开，图片需点击后加载。正文仅保留在当前页面会话中，刷新或关闭页面后清除。' : 'Links stay inside the reader; images load only when clicked. Articles stay in this page session and are cleared on reload or close.',
   busy: zh ? '正在读取内容…' : 'Reading content…',
@@ -55,6 +59,14 @@ function routeId() {
   const path = window.location.hash.slice(1).split('?')[0].replace(/^\//, '')
   try { return decodeURIComponent(path) } catch { return '' }
 }
+function readerScrollElement() {
+  const article = document.querySelector<HTMLElement>('.stage .markdown-body')
+  for (let node = article; node && node !== document.body; node = node.parentElement) {
+    const overflow = window.getComputedStyle(node).overflowY
+    if (node.scrollHeight > node.clientHeight + 8 && (overflow === 'auto' || overflow === 'scroll')) return node
+  }
+  return null
+}
 function documentFor(title: string, markdown: string, skin: SkinId, id: string, raw = markdown): DocumentRecord {
   const now = new Date().toISOString()
   return { id, title, markdown, raw, skin, sourceUrl: `local:${id}`, summary: summarizeMarkdown(markdown),
@@ -74,37 +86,81 @@ function SkinSurface({ doc }: { doc: DocumentRecord }) {
   const Surface = getSkin(doc.skin)!.Surface
   return <Surface doc={doc} />
 }
+function friendlyReadError(cause: unknown) {
+  const message = cause instanceof Error ? cause.message : String(cause)
+  if (zh) return message
+  if (/请输入要阅读的网址/.test(message)) return t('errEnterUrl')
+  if (/网址格式|仅支持不含用户名和密码|仅支持不含凭据/.test(message)) return t('errHttpOnly')
+  if (/超时|timed out|网页读取超时/.test(message)) return t('errTimeout')
+  if (/未包含可读取|没有可读取|未返回可读取|内容类型|字符编码/.test(message)) return t('errNoContent')
+  if (/无法读取|跨域|CORS|扩展读取|网络或证书|网站拒绝/.test(message)) return t('errBlocked')
+  return message
+}
 
 type Command = { id: string; title: string; hint?: string; run: () => void }
 
 function Dialog({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null)
   useEffect(() => { const dialog = ref.current!; dialog.showModal(); return () => dialog.close() }, [])
-  return <dialog ref={ref} className="offline-dialog" aria-label={title} onCancel={(event) => event.preventDefault()} dir={isRtl ? 'rtl' : undefined}>
+  return <dialog ref={ref} className="offline-dialog" aria-label={title} onCancel={(event) => { event.preventDefault(); onClose() }} dir={isRtl ? 'rtl' : undefined}>
     <header><strong>{title}</strong><button type="button" onClick={onClose} aria-label={label.close}>×</button></header>
     {children}
   </dialog>
 }
 
-function CommandPalette({ commands, onClose }: { commands: Command[]; onClose: () => void }) {
+function CommandPalette({ commands, onClose, onOpenUrl }: { commands: Command[]; onClose: () => void; onOpenUrl: (input: string) => void }) {
   const [query, setQuery] = useState('')
   const [index, setIndex] = useState(0)
-  const items = commands.filter((c) => c.title.toLowerCase().includes(query.trim().toLowerCase()))
+  const value = query.trim()
+  const items = commands.filter((c) => c.title.toLowerCase().includes(value.toLowerCase()))
   const selected = Math.min(index, Math.max(0, items.length - 1))
   const run = (command: Command) => { onClose(); command.run() }
+  const submit = () => {
+    if (items[selected]) run(items[selected])
+    else if (value) { onClose(); onOpenUrl(value) }
+  }
   return <Dialog title={label.commands} onClose={onClose}>
     <div className="offline-search"><Search size={16} aria-hidden="true" /><input autoFocus aria-label={label.commands}
-      value={query} placeholder={label.commands} onChange={(e) => { setQuery(e.target.value); setIndex(0) }}
+      value={query} placeholder={t('palettePlaceholder')} onChange={(e) => { setQuery(e.target.value); setIndex(0) }}
       onKeyDown={(e) => {
-        if (e.key === 'ArrowDown') { e.preventDefault(); setIndex(Math.min(selected + 1, items.length - 1)) }
-        if (e.key === 'ArrowUp') { e.preventDefault(); setIndex(Math.max(selected - 1, 0)) }
-        if (e.key === 'Enter' && items[selected]) { e.preventDefault(); run(items[selected]) }
+        if (e.key === 'ArrowDown' && items.length) { e.preventDefault(); setIndex(Math.min(selected + 1, items.length - 1)) }
+        if (e.key === 'ArrowUp' && items.length) { e.preventDefault(); setIndex(Math.max(selected - 1, 0)) }
+        if (e.key === 'Enter') { e.preventDefault(); submit() }
       }} /></div>
     <div className="offline-command-list">
-      {!items.length && <p>{t('paletteEmpty')}</p>}
+      {!items.length && !value && <p>{t('paletteEmpty')}</p>}
+      {!items.length && value && <button type="button" className="offline-command is-active" onClick={submit}>
+        <span>{label.open}: {value}</span><small>Enter</small>
+      </button>}
       {items.map((c, i) => <button type="button" key={c.id} className={`offline-command${i === selected ? ' is-active' : ''}`}
         onClick={() => run(c)}><span>{c.title}</span><small>{c.hint}</small></button>)}
     </div>
+  </Dialog>
+}
+
+function SessionDialog({
+  records,
+  activeId,
+  onOpen,
+  onRemove,
+  onClose,
+}: {
+  records: DocumentRecord[]
+  activeId: string | null
+  onOpen: (id: string) => void
+  onRemove: (id: string) => void
+  onClose: () => void
+}) {
+  return <Dialog title={label.sessions} onClose={onClose}>
+    {records.length ? <div className="session-list" role="list">
+      {records.map((doc) => <div className={`session-row${doc.id === activeId ? ' is-active' : ''}`} key={doc.id} role="listitem">
+        <button type="button" className="session-open" onClick={() => onOpen(doc.id)} aria-current={doc.id === activeId ? 'page' : undefined}>
+          <strong>{doc.title}</strong>
+          <span>{getSiteLabel(doc.sourceUrl)} · {skinLabel(skinById(doc.skin), lang)}{doc.id === activeId ? ` · ${label.sessionCurrent}` : ''}</span>
+        </button>
+        <button type="button" className="session-remove" onClick={() => onRemove(doc.id)} aria-label={`${label.sessionRemove}: ${doc.title}`}>×</button>
+      </div>)}
+    </div> : <p>{label.sessionEmpty}</p>}
   </Dialog>
 }
 
@@ -120,11 +176,16 @@ function App() {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [urlOpen, setUrlOpen] = useState(false)
   const [aboutOpen, setAboutOpen] = useState(false)
+  const [sessionsOpen, setSessionsOpen] = useState(false)
   const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number } | null>(null)
   const [languageOpen, setLanguageOpen] = useState(false)
   const [urlInput, setUrlInput] = useState('')
   const [webError, setWebError] = useState('')
   const request = useRef<AbortController | null>(null)
+  const activeIdRef = useRef(activeId)
+  const scrollTops = useRef<Record<string, number>>({})
+  const launchUrl = useMemo(() => new URLSearchParams(window.location.search).get('url')?.trim() || '', [])
+  const openUrlRef = useRef<((input: string) => void) | null>(null)
   const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState(false)
   const [, bumpAlias] = useState(0)
@@ -136,7 +197,23 @@ function App() {
     zh ? '# Q3 预算复盘\n\n| 部门 | 预算 | 实际 |\n| --- | ---: | ---: |\n| 平台 | 124000 | 119400 |\n| 增长 | 98000 | 101200 |' :
       '# Q3 Budget Review\n\n| Department | Forecast | Actual |\n| --- | ---: | ---: |\n| Platform | 124000 | 119400 |\n| Growth | 98000 | 101200 |', 'excel', panicDocumentId), [])
   const shown = panic ? panicDoc : activeDoc || homeDoc
+  const saveScroll = (id = activeIdRef.current) => {
+    if (!id) return
+    const element = readerScrollElement()
+    if (element) scrollTops.current[id] = element.scrollTop
+  }
 
+  useEffect(() => {
+    activeIdRef.current = activeId
+  }, [activeId])
+  useEffect(() => {
+    if (!activeId) return
+    const frame = window.requestAnimationFrame(() => {
+      const element = readerScrollElement()
+      if (element) element.scrollTop = scrollTops.current[activeId] || 0
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [activeId, skin])
   useEffect(() => {
     storageRemove('sneakread-documents-v1')
   }, [])
@@ -147,24 +224,40 @@ function App() {
   }, [shown, skin])
   useEffect(() => {
     const onHistory = () => {
-      setActiveId(routeId() || null); setPanic(false); setMenuAnchor(null)
+      saveScroll()
+      const id = routeId() || null
+      activeIdRef.current = id
+      setActiveId(id); setPanic(false)
       request.current?.abort(new Error(zh ? '已取消读取。' : 'Reading cancelled.'))
-      setPaletteOpen(false); setUrlOpen(false); setAboutOpen(false)
+      closePanels()
     }
     window.addEventListener('popstate', onHistory)
     window.addEventListener('hashchange', onHistory)
     return () => { window.removeEventListener('popstate', onHistory); window.removeEventListener('hashchange', onHistory) }
   }, [])
 
+  useEffect(() => {
+    if (!launchUrl) return
+    const params = new URLSearchParams(window.location.search)
+    params.delete('url')
+    const query = params.toString()
+    window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`)
+    setUrlInput(launchUrl)
+    void openUrlRef.current?.(launchUrl)
+  }, [launchUrl])
   useEffect(() => () => request.current?.abort(), [])
-  const closePanels = () => { setMenuAnchor(null); setPaletteOpen(false); setUrlOpen(false); setAboutOpen(false) }
+  const closePanels = () => { setMenuAnchor(null); setPaletteOpen(false); setUrlOpen(false); setAboutOpen(false); setSessionsOpen(false) }
   const togglePanic = () => { closePanels(); setPanic((value) => !value) }
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && ['k', 'p'].includes(event.key.toLowerCase())) {
         event.preventDefault(); closePanels(); setPanic(false); setPaletteOpen(true)
-      } else if (event.key === 'Escape' || ((event.ctrlKey || event.metaKey) && event.key === '.')) {
+      } else if ((event.ctrlKey || event.metaKey) && event.key === '.') {
         event.preventDefault(); togglePanic()
+      } else if (event.key === 'Escape') {
+        event.preventDefault()
+        if (menuAnchor || paletteOpen || urlOpen || aboutOpen || sessionsOpen) closePanels()
+        else togglePanic()
       }
     }
     window.addEventListener('keydown', onKey)
@@ -178,11 +271,14 @@ function App() {
   }, [bossMode])
 
   const navigate = (id: string | null) => {
+    saveScroll()
+    activeIdRef.current = id
     setActiveId(id)
     const hash = id ? `#/${encodeURIComponent(id)}` : '#/'
     if (window.location.hash !== hash) window.history.pushState(null, '', hash)
   }
   const changeSkin = (next: SkinId) => {
+    saveScroll()
     setPanic(false); setHomeSkin(next); storageSet('sneakread-offline-skin', next)
     if (activeDoc) setRecords((current) => current.map((doc) => doc.id === activeDoc.id ?
       { ...doc, skin: next, fileName: makeFileName(doc.title, next) } : doc))
@@ -192,7 +288,7 @@ function App() {
     if (request.current) return
     let url: string
     try { url = normalizeWebUrl(input) }
-    catch (cause) { setWebError(cause instanceof Error ? cause.message : String(cause)); return }
+    catch (cause) { setWebError(friendlyReadError(cause)); return }
     setBusy(true); setWebError(''); setUrlInput(url)
     const selectedSkin = activeDoc?.skin || homeSkin
     const controller = new AbortController()
@@ -201,13 +297,21 @@ function App() {
     try {
       const parsed = await readWebsite(url, controller.signal)
       const existing = records.find((doc) => doc.sourceUrl === parsed.sourceUrl)
-      const doc = { ...documentFor(parsed.title, parsed.markdown, selectedSkin, existing?.id || crypto.randomUUID(), parsed.raw),
-        ...parsed, projectName: new URL(parsed.sourceUrl).hostname }
+      const now = new Date().toISOString()
+      const doc = {
+        ...documentFor(parsed.title, parsed.markdown, selectedSkin, existing?.id || crypto.randomUUID(), parsed.raw),
+        ...parsed,
+        lastOpenedAt: now,
+        lastSyncedAt: now,
+        openCount: (existing?.openCount || 0) + 1,
+        projectName: new URL(parsed.sourceUrl).hostname,
+      }
       setRecords((current) => [doc, ...current.filter((item) => item.id !== doc.id)])
       navigate(doc.id); setUrlOpen(false)
-    } catch (cause) { setWebError(cause instanceof Error ? cause.message : String(cause)) }
+    } catch (cause) { setWebError(friendlyReadError(cause)) }
     finally { window.clearTimeout(timer); request.current = null; setBusy(false) }
   }
+  openUrlRef.current = openUrl
   const openWebsite = (event: FormEvent) => {
     event.preventDefault()
     void openUrl(urlInput)
@@ -223,9 +327,30 @@ function App() {
     try { await navigator.clipboard.writeText(activeDoc.raw) }
     catch { setNotice(zh ? '浏览器禁止复制，请保留原文。' : 'Clipboard unavailable. Keep the original text.') }
   }
+  const openSession = (id: string) => {
+    if (!records.some((doc) => doc.id === id)) return
+    setSessionsOpen(false); setPanic(false); navigate(id)
+  }
+  const removeSession = (id: string) => {
+    const remaining = records.filter((doc) => doc.id !== id)
+    setRecords(remaining)
+    delete scrollTops.current[id]
+    if (id === activeIdRef.current) navigate(remaining[0]?.id || null)
+  }
+  const refreshDocument = () => {
+    if (activeDoc) void openUrl(activeDoc.sourceUrl)
+  }
+  const openOriginal = () => {
+    if (activeDoc) window.open(activeDoc.sourceUrl, '_blank', 'noopener,noreferrer')
+  }
   const commands: Command[] = [
     { id: 'open-url', title: label.open, run: openUrlDialog },
+    { id: 'sessions', title: label.sessions, hint: String(records.length), run: () => setSessionsOpen(true) },
     { id: 'home', title: label.home, run: () => { setHomeSkin(activeDoc?.skin || homeSkin); setPanic(false); navigate(null) } },
+    ...(activeDoc ? [
+      { id: 'refresh', title: t('cmdRefresh'), run: refreshDocument },
+      { id: 'original', title: t('cmdOriginal'), run: openOriginal },
+    ] : []),
     ...skins.map((s) => ({ id: `skin-${s.id}`, title: t('openAs', { app: skinLabel(s, lang) }), run: () => changeSkin(s.id) })),
     ...(activeDoc ? [{ id: 'copy', title: t('cmdCopy'), run: copySource }] : []),
     { id: 'fullscreen', title: t('cmdFullscreen'), run: () => {
@@ -294,10 +419,14 @@ function App() {
           <section className="vsc-editor vsc-editor-welcome"><div className="vsc-tabs"><span className="vsc-tab is-active">{label.document}</span></div>
             <div className="vsc-editor-scroll">{welcome}</div></section></div><div className="vsc-status">UTF-8</div></div> : <SkinSurface key={shown.id} doc={shown} />}
     </SkinControlsProvider>
-    {activeDoc && !panic && !urlOpen && (busy || webError) && <div className="offline-notice" role={webError ? 'alert' : 'status'}>
-      {busy ? label.busy : webError}
-      {busy ? <button type="button" onClick={() => request.current?.abort(new Error(zh ? '已取消读取。' : 'Reading cancelled.'))}>{zh ? '取消读取' : 'Cancel'}</button>
-        : <button type="button" onClick={() => setWebError('')} aria-label={label.close}>×</button>}
+    {!panic && !urlOpen && (busy || webError) && <div className="offline-notice" role={webError ? 'alert' : 'status'}>
+      <span>{busy ? label.busy : webError}</span>
+      <span className="offline-notice-actions">
+        {busy ? <button type="button" onClick={() => request.current?.abort(new Error(zh ? '已取消读取。' : 'Reading cancelled.'))}>{zh ? '取消读取' : 'Cancel'}</button> : <>
+          {activeDoc && <button type="button" onClick={refreshDocument}>{t('cmdRefresh')}</button>}
+          <button type="button" onClick={() => setWebError('')} aria-label={label.close}>×</button>
+        </>}
+      </span>
     </div>}
     {notice && !panic && <div className="offline-notice" role="status">{notice}<button type="button" onClick={() => setNotice('')} aria-label={label.close}>×</button></div>}
     {menuAnchor && <><div className="menu-scrim" onClick={() => setMenuAnchor(null)} />
@@ -313,7 +442,9 @@ function App() {
         }}>{t('mAlias')}</button>
         <button type="button" className="menu-item" onClick={() => { closePanels(); setAboutOpen(true) }}>{t('mHelp')}</button>
       </div></>}
-    {paletteOpen && <CommandPalette commands={commands} onClose={() => setPaletteOpen(false)} />}
+    {paletteOpen && <CommandPalette commands={commands} onClose={() => setPaletteOpen(false)} onOpenUrl={(input) => void openUrl(input)} />}
+    {sessionsOpen && <SessionDialog records={records} activeId={activeId}
+      onOpen={openSession} onRemove={removeSession} onClose={() => setSessionsOpen(false)} />}
     {urlOpen && <Dialog title={label.open} onClose={() => setUrlOpen(false)}>{urlForm}</Dialog>}
     {aboutOpen && <Dialog title={label.title} onClose={() => setAboutOpen(false)}><p>{label.intro}</p><p>{label.webNote}</p><p>{label.tip}</p><p>{label.note}</p></Dialog>}
   </div>

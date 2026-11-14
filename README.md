@@ -7,8 +7,8 @@
 ## Use
 
 1. Double-click the generated `sneakread.html`. The interface starts without a server or network connection.
-2. Enter a URL to read CORS-enabled pages directly. To read non-CORS pages, install the Chromium extension from [browser-extension/README.zh.md](browser-extension/README.zh.md) and open the reader from its toolbar icon. The extension opens the target in a background tab, waits for scripts to render, then extracts the DOM.
-3. Read in your chosen disguise; use the File menu and command palette for appearance, language, and other settings.
+2. Enter a URL to read CORS-enabled pages directly. For non-CORS pages, install the Chromium extension from [browser-extension/README.zh.md](browser-extension/README.zh.md). Clicking its toolbar icon opens SneakRead with the current HTTP(S) tab ready to read; you can also enter another URL in the reader. The extension opens the target in a background tab, waits for readable text to settle, then extracts the DOM.
+3. Read in your chosen disguise; use the File menu and command palette for appearance, language, session switching, and other settings. The command palette also accepts a URL directly.
 4. Press `Esc` to show the budget spreadsheet and press it again to resume. Optional boss auto-hide switches away when the window loses focus.
 5. In the Excel disguise, drag the divider between the spreadsheet and article horizontally. Tab to the divider and use Left/Right arrows, or Home/End for its limits. At widths of 820px or less, only the article is shown. Pane sizes are not persisted and reset on reload or disguise changes.
 

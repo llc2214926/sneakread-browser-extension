@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "SneakRead 本地跨域读取",
   "version": "0.1.1",
-  "permissions": ["scripting"],
+  "permissions": ["scripting", "activeTab"],
   "host_permissions": ["http://*/*", "https://*/*"],
   "action": { "default_title": "打开 SneakRead" },
   "background": { "service_worker": "service-worker.js" }

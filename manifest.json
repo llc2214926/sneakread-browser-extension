@@ -3,7 +3,7 @@
   "name": "SneakRead 本地跨域阅读器",
   "version": "0.1.1",
   "description": "直接打开并读取浏览器能渲染的网页，在本机提取正文。",
-  "permissions": ["scripting"],
+  "permissions": ["scripting", "activeTab"],
   "host_permissions": ["http://*/*", "https://*/*"],
   "action": { "default_title": "打开 SneakRead" },
   "background": { "service_worker": "browser-extension/service-worker.js" }

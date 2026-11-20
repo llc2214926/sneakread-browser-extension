@@ -7,7 +7,7 @@
 ## Use
 
 1. Double-click the generated `sneakread.html`. The interface starts without a server or network connection.
-2. Enter a URL to read CORS-enabled pages directly. For non-CORS pages, install the Chromium extension from [browser-extension/README.zh.md](browser-extension/README.zh.md). Clicking its toolbar icon opens SneakRead with the current HTTP(S) tab ready to read; you can also enter another URL in the reader. The extension opens the target in a background tab, waits for readable text to settle, then extracts the DOM.
+2. Enter a URL to read CORS-enabled pages directly. For non-CORS pages, install the Chromium extension from [browser-extension/README.zh.md](browser-extension/README.zh.md). Its toolbar button reads the current HTTP(S) tab without reloading it when possible. For a new URL or when the current page cannot be read, the extension opens a temporary background tab and extracts the article when the text is ready.
 3. Read in your chosen disguise; use the File menu and command palette for appearance, language, session switching, and other settings. The command palette also accepts a URL directly.
 4. Press `Esc` to show the budget spreadsheet and press it again to resume. Optional boss auto-hide switches away when the window loses focus.
 5. In the Excel disguise, drag the divider between the spreadsheet and article horizontally. Tab to the divider and use Left/Right arrows, or Home/End for its limits. At widths of 820px or less, only the article is shown. Pane sizes are not persisted and reset on reload or disguise changes.
@@ -43,7 +43,7 @@ The boss key, display-name settings, and language settings remain available. Ski
 - The standalone HTML CSP permits HTTP(S) content and image requests but blocks external scripts, remote fonts, frames and form submissions. The extension uses its declared host permissions. Downloaded HTML is never executed as scripts inside the reader; only HTTP(S) links and image addresses are kept.
 - Articles stay in memory in the current reader tab. Browser Back can revisit pages opened in that session; reloading or closing the tab clears those articles. Pasted text and local article imports have been removed.
 - Only language, display-name, and appearance settings use browser local storage. Legacy saved articles are cleared when this version opens.
-- Cancelling a read or closing the reader disconnects its background task and closes the target tab. Loading, rendering, and extraction share one deadline.
+- Cancelling or closing the reader stops the read and closes only the temporary tab, if one was opened. The original tab is left open.
 - The boss key hides the reading screen; it does not encrypt the article or prevent inspection of the current page.
 
 ## Build and develop

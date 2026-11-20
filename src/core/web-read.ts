@@ -14,15 +14,15 @@ export function normalizeWebUrl(input: string): string {
   return url.href
 }
 
-type RenderedPageReply = { ok: boolean; sourceUrl?: string; html?: string; error?: string }
+type RenderedPageReply = { ok: boolean; sourceUrl?: string; html?: string; error?: string; fromSourceTab?: boolean }
 type ReaderPort = {
-  postMessage: (message: { url: string }) => void
+  postMessage: (message: { url: string; launch?: string }) => void
   disconnect: () => void
   onMessage: { addListener: (listener: (reply: RenderedPageReply) => void) => void; removeListener: (listener: (reply: RenderedPageReply) => void) => void }
   onDisconnect: { addListener: (listener: () => void) => void; removeListener: (listener: () => void) => void }
 }
 
-function readRenderedPage(url: string, signal: AbortSignal): Promise<RenderedPageReply> {
+function readRenderedPage(url: string, signal: AbortSignal, launch?: string): Promise<RenderedPageReply> {
   if (signal.aborted) return Promise.reject(signal.reason)
   if (window.location.protocol !== 'chrome-extension:') return Promise.reject(new Error('渲染读取仅支持从 SneakRead 扩展页面调用。'))
   const runtime = (globalThis as typeof globalThis & { chrome?: { runtime?: {
@@ -49,7 +49,7 @@ function readRenderedPage(url: string, signal: AbortSignal): Promise<RenderedPag
     signal.addEventListener('abort', onAbort, { once: true })
     if (signal.aborted) onAbort()
     else {
-      try { port.postMessage({ url }) }
+      try { port.postMessage(launch ? { url, launch } : { url }) }
       catch (error) { cleanup(); rejectPromise(error) }
     }
   })
@@ -68,12 +68,20 @@ function parseFetchedContent(raw: string, contentType: string, sourceUrl: string
   return { ...parsed, raw, sourceUrl, fetchedAt: new Date().toISOString(), summary: summarizeMarkdown(parsed.markdown, sourceUrl) }
 }
 
-export async function readWebsite(input: string, signal: AbortSignal): Promise<ReaderDoc> {
+export async function readWebsite(input: string, signal: AbortSignal, launch?: string): Promise<ReaderDoc> {
   const url = normalizeWebUrl(input)
   if (window.location.protocol === 'chrome-extension:') {
-    const rendered = await readRenderedPage(url, signal)
-    if (!rendered.ok || !rendered.html) throw new Error(rendered.error || '网页未返回可读取内容。')
-    return parseFetchedContent(rendered.html, 'text/html', normalizeWebUrl(rendered.sourceUrl || url))
+    const parseRendered = (page: RenderedPageReply) => {
+      signal.throwIfAborted()
+      if (!page.ok || !page.html) throw new Error(page.error || '网页未返回可读取内容。')
+      return parseFetchedContent(page.html, 'text/html', normalizeWebUrl(page.sourceUrl || url))
+    }
+    const rendered = await readRenderedPage(url, signal, launch)
+    try { return parseRendered(rendered) }
+    catch (error) {
+      if (!rendered.fromSourceTab || signal.aborted) throw error
+      return parseRendered(await readRenderedPage(url, signal))
+    }
   }
   let response: Response
   try {

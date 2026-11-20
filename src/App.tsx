@@ -22,12 +22,12 @@ const extensionPage = window.location.protocol === 'chrome-extension:'
 const label = {
   title: zh ? '单文件阅读器，联网读网页' : 'One file. Read the web.',
   intro: extensionPage
-    ? (zh ? '界面资源随扩展安装；输入网址后扩展会在后台打开目标网站，等待页面脚本渲染，再在本机提取正文，不调用第三方抓取服务。会沿用当前浏览器的登录状态。' : 'App resources are packaged with the extension. Enter a URL and it will open the target in a background tab, wait for its scripts to render, then extract text locally without third-party reader services. Your current browser login state is used.')
+    ? (zh ? '点击扩展图标可直接读取当前网页。也可以输入网址，在后台打开网页并在本机提取正文。' : 'Click the extension icon to read the current page, or enter a URL to open it in the background and extract the article locally.')
     : (zh ? '界面资源全部内嵌；输入网址后直接连接目标网站，在本机提取正文，不调用第三方抓取服务。遇到跨域拦截时，可安装随源码提供的 Chromium 扩展，由扩展代取、仍在本机解析。' : 'All app resources are embedded. Connect directly to a website and extract text locally, without third-party reader services. If CORS blocks the page, install the optional Chromium extension included with the source; it fetches the page and keeps parsing local.'),
   open: zh ? '打开网址' : 'Open URL',
   url: zh ? '网页地址' : 'Website URL',
   webNote: extensionPage
-    ? (zh ? '扩展在后台打开网页并等待脚本渲染，沿用当前浏览器登录状态后提取页面 DOM，不调用第三方中转。点击正文链接继续在当前扩展阅读页打开；图片默认不加载，点击图片按钮后加载。验证码、付费墙或需要交互的内容仍可能无法读取。' : 'The extension renders pages in a background tab using your browser session, without a third-party proxy. Article links open inside this reader. Images load only when clicked. CAPTCHA, paywalls, or interactive content may still block reading.')
+    ? (zh ? '网页读取沿用当前浏览器的登录状态，不调用第三方中转。正文链接在阅读器内打开，图片需点击后加载。' : 'Pages are read in your browser session without a third-party proxy. Links open inside the reader and images load only when clicked.')
     : (zh ? '独立 HTML 读取网页受 CORS 限制；可安装 browser-extension 中的扩展并从扩展图标打开阅读器。点击链接在阅读器内继续阅读；图片默认不加载，点击后加载。' : 'Standalone HTML requests require CORS. For other sites, install browser-extension and open it from its toolbar icon. Links stay in the reader; images load only when clicked.'),
   close: zh ? '关闭' : 'Close',
   document: zh ? '网页文档' : 'Web document',
@@ -40,6 +40,7 @@ const label = {
   tip: zh ? '文件菜单 / Ctrl 或 ⌘ K：打开网址与切换外观；Esc：预算表遮盖，再按恢复。' : 'File menu / Ctrl or ⌘ K: open URLs and switch apps. Esc: budget sheet; press again to restore.',
   note: zh ? '链接在阅读器内打开，图片需点击后加载。正文仅保留在当前页面会话中，刷新或关闭页面后清除。' : 'Links stay inside the reader; images load only when clicked. Articles stay in this page session and are cleared on reload or close.',
   busy: zh ? '正在读取内容…' : 'Reading content…',
+  retry: zh ? '重试' : 'Retry',
 }
 
 function storageGet(key: string) {
@@ -180,12 +181,12 @@ function App() {
   const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number } | null>(null)
   const [languageOpen, setLanguageOpen] = useState(false)
   const [urlInput, setUrlInput] = useState('')
-  const [webError, setWebError] = useState('')
+  const [webError, setWebError] = useState<{ message: string; url?: string } | null>(null)
   const request = useRef<AbortController | null>(null)
   const activeIdRef = useRef(activeId)
   const scrollTops = useRef<Record<string, number>>({})
   const launchUrl = useMemo(() => new URLSearchParams(window.location.search).get('url')?.trim() || '', [])
-  const openUrlRef = useRef<((input: string) => void) | null>(null)
+  const openUrlRef = useRef<((input: string, launch?: string) => void) | null>(null)
   const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState(false)
   const [, bumpAlias] = useState(0)
@@ -239,11 +240,13 @@ function App() {
   useEffect(() => {
     if (!launchUrl) return
     const params = new URLSearchParams(window.location.search)
+    const launch = extensionPage ? params.get('launch') || undefined : undefined
     params.delete('url')
+    if (extensionPage) params.delete('launch')
     const query = params.toString()
     window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`)
     setUrlInput(launchUrl)
-    void openUrlRef.current?.(launchUrl)
+    void openUrlRef.current?.(launchUrl, launch)
   }, [launchUrl])
   useEffect(() => () => request.current?.abort(), [])
   const closePanels = () => { setMenuAnchor(null); setPaletteOpen(false); setUrlOpen(false); setAboutOpen(false); setSessionsOpen(false) }
@@ -283,19 +286,19 @@ function App() {
     if (activeDoc) setRecords((current) => current.map((doc) => doc.id === activeDoc.id ?
       { ...doc, skin: next, fileName: makeFileName(doc.title, next) } : doc))
   }
-  const openUrlDialog = () => { closePanels(); setPanic(false); setWebError(''); setUrlOpen(true) }
-  const openUrl = async (input: string) => {
+  const openUrlDialog = () => { closePanels(); setPanic(false); setWebError(null); setUrlOpen(true) }
+  const openUrl = async (input: string, launch?: string) => {
     if (request.current) return
     let url: string
     try { url = normalizeWebUrl(input) }
-    catch (cause) { setWebError(friendlyReadError(cause)); return }
-    setBusy(true); setWebError(''); setUrlInput(url)
+    catch (cause) { setWebError({ message: friendlyReadError(cause) }); return }
+    setBusy(true); setWebError(null); setUrlInput(url)
     const selectedSkin = activeDoc?.skin || homeSkin
     const controller = new AbortController()
     request.current = controller
     const timer = window.setTimeout(() => controller.abort(new Error(zh ? '读取超时，请检查网络或目标网站。' : 'Reading timed out. Check your connection or the target website.')), 22_000)
     try {
-      const parsed = await readWebsite(url, controller.signal)
+      const parsed = await readWebsite(url, controller.signal, launch)
       const existing = records.find((doc) => doc.sourceUrl === parsed.sourceUrl)
       const now = new Date().toISOString()
       const doc = {
@@ -308,7 +311,7 @@ function App() {
       }
       setRecords((current) => [doc, ...current.filter((item) => item.id !== doc.id)])
       navigate(doc.id); setUrlOpen(false)
-    } catch (cause) { setWebError(friendlyReadError(cause)) }
+    } catch (cause) { setWebError({ message: friendlyReadError(cause), url }) }
     finally { window.clearTimeout(timer); request.current = null; setBusy(false) }
   }
   openUrlRef.current = openUrl
@@ -390,13 +393,14 @@ function App() {
       else void openUrl(link.href)
     } else void openUrl(link.href)
   }
+  const retryUrl = webError?.url
   const urlForm = <form className="offline-import" onSubmit={openWebsite}>
       <label>{label.url}<input type="text" inputMode="url" autoComplete="off" spellCheck={false}
         value={urlInput} onChange={(event) => setUrlInput(event.target.value)} placeholder="https://…" /></label>
-      <div className="offline-import-actions"><button type="submit" disabled={busy}>{label.open}</button>
+      <div className="offline-import-actions"><button type="submit" disabled={busy}>{retryUrl === urlInput ? label.retry : label.open}</button>
         {busy && request.current && <button type="button" onClick={() => request.current?.abort(new Error(zh ? '已取消读取。' : 'Reading cancelled.'))}>{zh ? '取消读取' : 'Cancel'}</button>}</div>
       {busy && request.current && <p role="status">{label.busy}</p>}
-      {webError && <p className="welcome-error" role="alert">{webError}</p>}
+      {urlOpen && webError && <p className="welcome-error" role="alert">{webError.message}</p>}
       <p className="offline-note">{label.webNote}</p>
     </form>
   const welcome = <div className="welcome offline-welcome">
@@ -420,11 +424,11 @@ function App() {
             <div className="vsc-editor-scroll">{welcome}</div></section></div><div className="vsc-status">UTF-8</div></div> : <SkinSurface key={shown.id} doc={shown} />}
     </SkinControlsProvider>
     {!panic && !urlOpen && (busy || webError) && <div className="offline-notice" role={webError ? 'alert' : 'status'}>
-      <span>{busy ? label.busy : webError}</span>
+      <span>{busy ? label.busy : webError?.message}</span>
       <span className="offline-notice-actions">
         {busy ? <button type="button" onClick={() => request.current?.abort(new Error(zh ? '已取消读取。' : 'Reading cancelled.'))}>{zh ? '取消读取' : 'Cancel'}</button> : <>
-          {activeDoc && <button type="button" onClick={refreshDocument}>{t('cmdRefresh')}</button>}
-          <button type="button" onClick={() => setWebError('')} aria-label={label.close}>×</button>
+          {retryUrl && <button type="button" onClick={() => void openUrl(retryUrl)}>{label.retry}</button>}
+          <button type="button" onClick={() => setWebError(null)} aria-label={label.close}>×</button>
         </>}
       </span>
     </div>}

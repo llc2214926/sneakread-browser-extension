@@ -16,18 +16,50 @@ const blockTags: Record<string, true> = {
   FIGCAPTION: true, FIGURE: true, FOOTER: true, HEADER: true, MAIN: true, NAV: true,
   P: true, SECTION: true,
 }
+
+const articleSelector = 'article,[itemprop~="articleBody"]'
+const headingSelector = 'h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]'
+
+function webBody(content: DocumentFragment) {
+  const hasContent = (node: Element) => Boolean(node.textContent?.trim() || node.querySelector('img[src],img[data-src]'))
+  const scope = Array.from(content.querySelectorAll('main,[role="main"]')).find(hasContent) || content
+  // shortcut: rely on semantic landmarks rather than guessing from site-specific classes.
+  const articles = Array.from(scope.querySelectorAll(articleSelector)).filter((node) =>
+    !node.parentElement?.closest(articleSelector) && hasContent(node))
+  return articles.length === 1 ? articles[0] : scope
+}
+
+function cleanWebContent(content: DocumentFragment, documentUrl?: string, sourceUrl?: string) {
+  content.querySelectorAll('[hidden],[role="banner"],[role="contentinfo"]').forEach((node) => node.remove())
+  content.querySelectorAll('aside,[role="complementary"]').forEach((node) => {
+    if (!node.closest(articleSelector)) node.remove()
+  })
+  const headings = new Set(Array.from(content.querySelectorAll(headingSelector), (node) => node.id))
+  content.querySelectorAll('nav,[role="navigation"]').forEach((node) => {
+    const isOutline = sourceUrl && Array.from(node.querySelectorAll('a[href]')).some((link) => {
+      const url = safeHttpUrl(link.getAttribute('href'), documentUrl)
+      return url !== null && headings.has(samePageFragment(url, sourceUrl) || '')
+    })
+    if (!isOutline) node.remove()
+  })
+}
+
 function htmlMarkdown(text: string, articleOnly = false, baseUrl?: string): { title: string; markdown: string } {
-  // Template contents have an inert owner document: never mount or adopt these nodes.
-  const template = document.createElement('template')
-  template.innerHTML = text
-  const content = template.content
+  // Parse in the template's inert document. Never mount or adopt the parsed nodes.
+  const inertDocument = document.createElement('template').content.ownerDocument
+  const range = inertDocument.createRange()
+  range.selectNodeContents(inertDocument.createElement('template'))
+  const content = range.createContextualFragment(text)
   const documentUrl = safeHttpUrl(content.querySelector('base[href]')?.getAttribute('href'), baseUrl) || baseUrl
   content.querySelectorAll(
     'script,style,iframe,frame,frameset,object,embed,link,meta,base,svg,math,template,noscript,audio,video,source,track,canvas,form,input,button,select,textarea',
   ).forEach((node) => node.remove())
-  const title = (content.querySelector('title')?.textContent || content.querySelector('h1')?.textContent || '').replace(/\s+/g, ' ').trim()
+  const pageTitle = content.querySelector('title')?.textContent?.trim()
   content.querySelectorAll('title').forEach((node) => node.remove())
-  const fragments = new Map(Array.from(content.querySelectorAll('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]'),
+  if (articleOnly) cleanWebContent(content, documentUrl, baseUrl)
+  const body = articleOnly ? webBody(content) : content
+  const title = (pageTitle || body.querySelector('h1')?.textContent || '').replace(/\s+/g, ' ').trim()
+  const fragments = new Map(Array.from(body.querySelectorAll(headingSelector),
     (heading) => [heading.id, headingId(heading.textContent || '')]))
 
   function children(node: Node): string {
@@ -87,7 +119,6 @@ function htmlMarkdown(text: string, articleOnly = false, baseUrl?: string): { ti
     return body
   }
 
-  const body = articleOnly ? content.querySelector('article,main,[role="main"]') || content : content
   return { title, markdown: children(body).trim() }
 }
 
